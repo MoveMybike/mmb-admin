@@ -15,6 +15,7 @@ import BoardAdmin from "./components/board-admin.component";
 
 // import AuthVerify from "./common/auth-verify";
 import EventBus from "./common/EventBus";
+import AllBookingTable from "./components/AllBookingTable";
 
 class App extends Component {
   constructor(props) {
@@ -128,16 +129,17 @@ class App extends Component {
           )}
         </nav>
 
-        <div className="container mt-3">
+        <div className="mt-3">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<Profile />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/user" element={<BoardUser />} />
             <Route path="/mod" element={<BoardModerator />} />
-            <Route path="/admin" element={<BoardAdmin />} />
+            <Route path="/admin" element={<AllBookingTable />} />
+            <Route path="/bookings" element={<AllBookingTable />} />
           </Routes>
         </div>
 

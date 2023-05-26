@@ -30,3 +30,32 @@ label {
   -webkit-border-radius: 50%;
   border-radius: 50%;
 }
+
+
+
+/* sideNav */
+.sideNav a{
+  color: white!important;
+}
+.sideNav{
+  display: block;
+  background-color: #b02a37;
+  border-radius: 2px;
+  height: 300px;
+  width: 100%;
+}
+h6{
+  font-size: 12px;
+}
+body{
+  overflow-x: hidden;
+}
+.rdt_Table{
+  overflow-x: hidden;
+  border: 1px solid lightgrey;
+}
+.rdt_ExpanderRow{
+  padding-top: 1%;
+  padding-bottom: 1%;
+  border-bottom: 1px solid lightpink;
+}
