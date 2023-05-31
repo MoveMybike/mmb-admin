@@ -1,10 +1,18 @@
 import React from "react";
+import userService from "../services/user.service";
 import OrderView from "./OrderView";
 import SideNavComponent from "./SideNavComponent";
 
 function AllBookingTable() {
-  const user = JSON.parse(localStorage.getItem('AllBooking'));
-  const [bookdata, setBookdata] = React.useState(user);
+  const [bookdata, setBookdata] = React.useState();
+  const user = JSON.parse(localStorage.getItem('user'));
+  
+  React.useEffect(() => {
+    const userData = userService.getAllBookings()
+    userData.then((result) => {
+      setBookdata(result)
+    })
+  }, [user.jwt]); 
   
   return (
     bookdata != null ? (

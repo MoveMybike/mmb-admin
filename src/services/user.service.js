@@ -32,7 +32,10 @@ class UserService {
   getAllBookings(){
     return axios.get(API_URL + 'getAllBooking', { headers: {Authorization: 'Bearer ' + user.jwt} })
     .then(response => {
+      
       if (response.data) {
+        console.log("vimala")
+        console.log(response.data)
         localStorage.setItem("AllBooking", JSON.stringify(response.data));
       }
       return response.data;
