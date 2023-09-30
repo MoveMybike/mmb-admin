@@ -34,9 +34,17 @@ class UserService {
     .then(response => {
       
       if (response.data) {
-        console.log("vimala")
-        console.log(response.data)
         localStorage.setItem("AllBooking", JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+  }
+  getPartialBookings(){
+    return axios.get(API_URL + 'getPage1', { headers: {Authorization: 'Bearer ' + user.jwt} })
+    .then(response => {
+      
+      if (response.data) {
+        localStorage.setItem("EnquiryData", JSON.stringify(response.data));
       }
       return response.data;
     });
