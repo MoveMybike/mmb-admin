@@ -1,15 +1,16 @@
 import React from "react";
 import userService from "../services/user.service";
-import OrderView from "./OrderView";
 import SideNavComponent from "./SideNavComponent";
+import PartialOrderView from "./PartialOrderView";
 
-function AllBookingTable() {
+function BookingEnquiryTable() {
   const [bookdata, setBookdata] = React.useState();
   const user = JSON.parse(localStorage.getItem('user'));
   
   React.useEffect(() => {
-    const userData = userService.getAllBookings()
+    const userData = userService.getPartialBookings()
     userData.then((result) => {
+      console.log(result);
       setBookdata(result)
     })
   }, [user.jwt]); 
@@ -21,8 +22,8 @@ function AllBookingTable() {
           <SideNavComponent />
         </div>
         <div className='col-md-10'>
-          <OrderView bookdata={bookdata}/>
-        </div>
+          <PartialOrderView bookdata={bookdata}/>
+        </div> 
     </div>
       ) : (
         <div className='row p-1 pt-5'>
@@ -31,10 +32,11 @@ function AllBookingTable() {
         </div>
         <div className='col-md-10'>
           <h2>Loading...</h2>
-        </div>
+        </div>  
     </div>
+        
       )
   );
 }
 
-export default AllBookingTable
+export default BookingEnquiryTable

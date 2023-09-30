@@ -2,7 +2,7 @@ import React from 'react';
 import DataTable from 'react-data-table-component';
 
 
-const OrderView = ({ bookdata }) => {
+const PartialOrderView = ({ bookdata }) => {
     const columns = [
         {
             name: 'Name',
@@ -25,13 +25,13 @@ const OrderView = ({ bookdata }) => {
         },
         {
             name: 'From',
-            selector: row => row.fromLocation,
+            selector: row => row.fromCity,
             sortable: true,
         	hide: 'sm',
         },
         {
             name: 'To',
-            selector: row => row.toLocation,
+            selector: row => row.toCity,
             sortable: true,
         	hide: 'sm',
         },
@@ -47,10 +47,10 @@ const OrderView = ({ bookdata }) => {
         <div className='row pl-5 expndeddata'>
             <div className='col-md-6 row'>
                 <div className='col-md-4'>
-                    <h6>From Address</h6>
+                    <h6>From City</h6>
                 </div>
                 <div className='col-md-8'>
-                    <h6><b>{data.fromAdress.cityDoorpick != null ? data.fromAdress.streetDoorpick+''+data.fromAdress.lmDoorpick+''+data.fromAdress.localityDoorpick+''+data.fromAdress.cityDoorpick+''+data.fromAdress.stateDoorpick+''+data.fromAdress.zipDoorpick : 'Station'}</b></h6>
+                    <h6><b>{data.fromCity}</b></h6>
                 </div>
             </div>
             <div className='col-md-6 row'>
@@ -58,7 +58,7 @@ const OrderView = ({ bookdata }) => {
                     <h6>To Address</h6>
                 </div>
                 <div className='col-md-8'>
-                    <h6><b>{data.fromAdress.cityDoordel != null ? data.toAdress.streetDoordel+''+data.toAdress.lmDoordel+''+data.toAdress.localityDoordel+''+data.toAdress.cityDoordel+''+data.toAdress.stateDoordel+''+data.toAdress.zipDoordel : 'Station'}</b></h6>
+                    <h6><b>{data.toCity}</b></h6>
                 </div>
             </div>
             <div className='col-md-6 row'>
@@ -85,21 +85,13 @@ const OrderView = ({ bookdata }) => {
                 <h6><b>{data.senderEmail}</b></h6>
                 </div>
             </div>
-            <div className='col-md-6 row'>
-                <div className='col-md-4'>
-                    <h6>Total Amount</h6>
-                </div>
-                <div className='col-md-8'>
-                <h6><b>{data.priceDetails.totalCharges}</b></h6>
-                </div>
-            </div>
         </div>
         )
     };
     const handleSort = (column, sortDirection) => console.log(column.selector, sortDirection);
     return (
         <DataTable
-            title="ALL Bookings"
+            title="Booking Enquiry"
             columns={columns}
             data={bookdata}
             expandableRows expandableRowsComponent={ExpandedComponent}
@@ -112,4 +104,4 @@ const OrderView = ({ bookdata }) => {
     )
 }
 
-export default OrderView;
+export default PartialOrderView;
