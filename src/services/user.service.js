@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authHeader from './auth-header';
 
-const API_URL = 'http://localhost:8080/v1/admin/';
+const API_URL = process.env.REACT_APP_BACKEND_URL+'/v1/admin/';
 const user = JSON.parse(localStorage.getItem('user'));
 
 class UserService {
