@@ -40,7 +40,7 @@ class UserService {
     });
   }
   getPartialBookings(){
-    return axios.get(API_URL + 'getPage1', { headers: {Authorization: 'Bearer ' + user.jwt} })
+    return axios.get(API_URL + 'getPage1ByDays', { headers: {Authorization: 'Bearer ' + user.jwt} })
     .then(response => {
       
       if (response.data) {

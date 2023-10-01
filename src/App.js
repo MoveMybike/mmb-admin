@@ -18,6 +18,7 @@ import EventBus from "./common/EventBus";
 import AllBookingTable from "./components/AllBookingTable";
 import FromCitiDataTable from "./components/FromCitiDataTable";
 import BookingEnquiryTable from "./components/BookingEnquiryTable";
+import image from "./logo.png";
 
 class App extends Component {
   constructor(props) {
@@ -65,9 +66,13 @@ class App extends Component {
 
     return (
       <div>
-        <nav className="navbar navbar-expand navbar-dark bg-dark">
+        <nav className="navbar navbar-expand navbar-dark">
           <Link to={"/"} className="navbar-brand">
-            MOVEMYBIKE
+          <img
+            src={image}
+            width="200"
+            alt="Bike parcel/ Transport / Shipping"
+          />
           </Link>
           <div className="navbar-nav mr-auto">
             <li className="nav-item">
