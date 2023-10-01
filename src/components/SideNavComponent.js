@@ -40,6 +40,12 @@ export class SideNavComponent extends Component {
               <NavLink className="nav-link" to="/bookings">
                 Bookings
               </NavLink>
+              <NavLink className="nav-link" to="/enquiries">
+                Booking Enquiry
+              </NavLink>
+              <NavLink className="nav-link" to="/fromCities">
+                From City
+              </NavLink>
             </NavItem>
           </Nav>
         </Collapse>

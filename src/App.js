@@ -16,6 +16,9 @@ import BoardAdmin from "./components/board-admin.component";
 // import AuthVerify from "./common/auth-verify";
 import EventBus from "./common/EventBus";
 import AllBookingTable from "./components/AllBookingTable";
+import FromCitiDataTable from "./components/FromCitiDataTable";
+import BookingEnquiryTable from "./components/BookingEnquiryTable";
+import image from "./logo.png";
 
 class App extends Component {
   constructor(props) {
@@ -63,9 +66,13 @@ class App extends Component {
 
     return (
       <div>
-        <nav className="navbar navbar-expand navbar-dark bg-dark">
+        <nav className="navbar navbar-expand navbar-dark">
           <Link to={"/"} className="navbar-brand">
-            MOVEMYBIKE
+          <img
+            src={image}
+            width="200"
+            alt="Bike parcel/ Transport / Shipping"
+          />
           </Link>
           <div className="navbar-nav mr-auto">
             <li className="nav-item">
@@ -140,6 +147,8 @@ class App extends Component {
             <Route path="/mod" element={<BoardModerator />} />
             <Route path="/admin" element={<AllBookingTable />} />
             <Route path="/bookings" element={<AllBookingTable />} />
+            <Route path="/fromCities" element={<FromCitiDataTable />} />
+            <Route path="/enquiries" element={<BookingEnquiryTable />} />
           </Routes>
         </div>
 
