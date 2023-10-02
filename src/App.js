@@ -92,18 +92,18 @@ class App extends Component {
             {showAdminBoard && (
               <li className="nav-item">
                 <Link to={"/admin"} className="nav-link">
-                  Admin Board
+                  Admin
                 </Link>
               </li>
             )}
 
-            {currentUser && (
+            {/* {currentUser && (
               <li className="nav-item">
                 <Link to={"/user"} className="nav-link">
                   User
                 </Link>
               </li>
-            )}
+            )} */}
           </div>
 
           {currentUser ? (
@@ -139,7 +139,7 @@ class App extends Component {
         <div className="mt-3">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Profile />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />

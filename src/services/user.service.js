@@ -5,9 +5,9 @@ const API_URL = process.env.REACT_APP_BACKEND_URL+'/v1/admin/';
 const user = JSON.parse(localStorage.getItem('user'));
 
 class UserService {
-  getPublicContent() {
-    return axios.get(API_URL + 'all');
-  }
+  // getPublicContent() {
+  //   return axios.get(API_URL + 'all');
+  // }
   getFromCities() {
     return axios.get(API_URL + 'getfromcity', { headers: {Authorization: 'Bearer ' + user.jwt} })
     .then(response => {

@@ -63,3 +63,38 @@ body{
 .navbar{
   background-color: #b02a37;
 }
+#main-nav .container-fluid{
+  padding: 0;
+}
+@media only screen and (max-width: 768px) {
+  .sideNav{
+    display: flex;
+    height: 50px;
+    flex-direction: row;
+  }
+  .collapse{
+    display: block!important;
+  }
+  .navbar-toggler{
+    display: none;
+  }
+  #main-nav{
+    height: 75px;
+  }
+  .sideNav .nav-item{
+    display: flex;
+  }
+  .sideNav .nav-item .nav-link{
+    margin-right: 15px;
+  }
+  .navbar-brand{
+    margin: 0;
+  }
+  .navbar-brand img{
+    width: 100px;
+  }
+  .navbar{
+    padding-left: 2px;
+    padding-right: 0;
+  }
+}
