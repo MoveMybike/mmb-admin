@@ -8,20 +8,13 @@ const OrderView = ({ bookdata }) => {
             name: 'Name',
             selector: row => row.senderName,
             sortable: true,
-            grow: 2,
+            grow: 2
         },
         {
             name: 'MobileNumber',
             selector: row => row.senderMobileNumber,
             sortable: true,
         	hide: 'sm',
-        },
-        {
-            name: 'Email',
-            selector: row => row.senderEmail,
-            sortable: true,
-        	hide: 'sm',
-            grow: 2,
         },
         {
             name: 'From',
@@ -40,6 +33,11 @@ const OrderView = ({ bookdata }) => {
             selector: row => row.bookingDate,
             sortable: true,
         	hide: 'sm',
+        },
+        {
+            name: 'Created Date',
+            selector: row => row.createDateTime.slice(0,10),
+            sortable: true
         }
     ];
     const ExpandedComponent = ({ data }) =>{
@@ -50,7 +48,7 @@ const OrderView = ({ bookdata }) => {
                     <h6>From Address</h6>
                 </div>
                 <div className='col-md-8'>
-                    <h6><b>{data.fromAdress.cityDoorpick != null ? data.fromAdress.streetDoorpick+''+data.fromAdress.lmDoorpick+''+data.fromAdress.localityDoorpick+''+data.fromAdress.cityDoorpick+''+data.fromAdress.stateDoorpick+''+data.fromAdress.zipDoorpick : 'Station'}</b></h6>
+                    <h6><b>{data.fromAdress.cityDoorpick != null ? data.fromAdress.streetDoorpick+' , '+data.fromAdress.cityDoorpick+' , '+data.fromAdress.stateDoorpick+' , '+data.fromAdress.zipDoorpick : 'Station'}</b></h6>
                 </div>
             </div>
             <div className='col-md-6 row'>
@@ -58,7 +56,7 @@ const OrderView = ({ bookdata }) => {
                     <h6>To Address</h6>
                 </div>
                 <div className='col-md-8'>
-                    <h6><b>{data.fromAdress.cityDoordel != null ? data.toAdress.streetDoordel+''+data.toAdress.lmDoordel+''+data.toAdress.localityDoordel+''+data.toAdress.cityDoordel+''+data.toAdress.stateDoordel+''+data.toAdress.zipDoordel : 'Station'}</b></h6>
+                    <h6><b>{data.toAdress.cityDoordel != null ? data.toAdress.streetDoordel+' , '+data.toAdress.cityDoordel+' , '+data.toAdress.stateDoordel+' , '+data.toAdress.zipDoordel : 'Station'}</b></h6>
                 </div>
             </div>
             <div className='col-md-6 row'>
@@ -71,7 +69,7 @@ const OrderView = ({ bookdata }) => {
             </div>
             <div className='col-md-6 row'>
                 <div className='col-md-4'>
-                    <h6>Mobile Number</h6>
+                    <h6>Ph Number</h6>
                 </div>
                 <div className='col-md-8'>
                 <h6><b>{data.senderMobileNumber}</b></h6>
@@ -87,7 +85,7 @@ const OrderView = ({ bookdata }) => {
             </div>
             <div className='col-md-6 row'>
                 <div className='col-md-4'>
-                    <h6>Total Amount</h6>
+                    <h6>Total Amt</h6>
                 </div>
                 <div className='col-md-8'>
                 <h6><b>{data.priceDetails.totalCharges}</b></h6>

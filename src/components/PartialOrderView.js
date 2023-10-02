@@ -17,13 +17,6 @@ const PartialOrderView = ({ bookdata }) => {
         	hide: 'sm',
         },
         {
-            name: 'Email',
-            selector: row => row.senderEmail,
-            sortable: true,
-        	hide: 'sm',
-            grow: 2,
-        },
-        {
             name: 'From',
             selector: row => row.fromCity,
             sortable: true,
@@ -40,6 +33,11 @@ const PartialOrderView = ({ bookdata }) => {
             selector: row => row.bookingDate,
             sortable: true,
         	hide: 'sm',
+        },
+        {
+            name: 'Created Date',
+            selector: row => row.createDateTime.slice(0,10),
+            sortable: true
         }
     ];
     const ExpandedComponent = ({ data }) =>{
