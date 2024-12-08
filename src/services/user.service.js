@@ -64,7 +64,7 @@ class UserService {
     .then(response => {
       
       if (response.data) {
-        localStorage.setItem("EnquiryData", JSON.stringify(response.data));
+        localStorage.setItem("AllBooking", JSON.stringify(response.data));
       }
       return response.data;
     });
