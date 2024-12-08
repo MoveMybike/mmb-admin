@@ -18,7 +18,11 @@
     "react-validation": "^3.0.7",
     "reactstrap": "^9.1.10",
     "styled-components": "^5.3.6",
-    "validator": "^13.7.0"
+    "validator": "^13.7.0",
+    "@mui/material": "^5.x.x",
+    "@mui/icons-material": "^5.x.x",
+    "@emotion/react": "^11.x.x",
+    "@emotion/styled": "^11.x.x"
   },
   "scripts": {
     "start:local": "env-cmd -f .env.local react-scripts start",

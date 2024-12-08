@@ -1,15 +1,86 @@
-import React from 'react';
+import React, { useState }  from 'react';
 import DataTable from 'react-data-table-component';
+import userService from "../services/user.service";
 
+import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem } from "@mui/material";
 
 const OrderView = ({ bookdata }) => {
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedRow, setSelectedRow] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState("")
+
+    const statusMapping = {
+        O: { label: "Open", color: "lightgreen" },
+        R: { label: "Cancelled", color: "red" },
+        P: { label: "Postponed", color: "orange" },
+        U: { label: "Customer Confirmation", color: "vilot" },
+        M: { label: "MMMB Confirmation", color: "purple" },
+        N: { label: "No Response", color: "gray" },
+        Y: { label: "Booking Confirmed", color: "green" },
+        F: { label: "Feedback", color: "pink" },
+        C: { label: "Closed", color: "coffe" },
+      };
+
+      const handleApprove = (row) => {
+        setSelectedRow(row);
+        setDialogOpen(true); // Open the dialog
+      };
+    
+      const handleCloseDialog = () => {
+        setDialogOpen(false); // Close the dialog
+        setSelectedRow(null); // Clear the selected row
+        setSelectedStatus(""); // Reset the selected status
+      };
+      const handleSubmit = async () => {
+        try {
+          const bookingId = selectedRow.id; // Example booking ID
+          const trackingStatus = selectedRow.status; // Example tracking status
+          const approveStatus = selectedStatus; // Example approve status
+      
+          const result = await userService.approveBookings(bookingId, trackingStatus, approveStatus);
+          alert("Booking approved successfully!");
+          console.log("Approval Result:", result);
+        } catch (error) {
+          alert("Failed to approve booking. Please try again.");
+          console.error("Approval Error:", error);
+        }
+      };
+      
+      const handleStatusChange = (event) => {
+        setSelectedStatus(event.target.value);
+      };
     const columns = [
+        {
+            name: "Actions",
+            cell: (row) => (
+              <button onClick={() => handleApprove(row)} className="btn-approve">
+                Approve
+              </button>
+            ),
+            ignoreRowClick: true,
+            allowOverflow: true,
+            button: true,
+          },
         {
             name: 'Name',
             selector: row => row.senderName,
             sortable: true,
             grow: 2
         },
+        {
+            name: "Booking Status",
+            selector: (row) => row.status,
+            cell: (row) => {
+              const status = statusMapping[row.status] || { label: "Unknown", color: "gray" };
+              return (
+                <span style={{ color: status.color, fontWeight: "bold" }}>
+                  {status.label}
+                </span>
+              );
+            },
+            sortable: true,
+            grow: 2
+          },
         {
             name: 'MobileNumber',
             selector: row => row.senderMobileNumber,
@@ -96,18 +167,43 @@ const OrderView = ({ bookdata }) => {
     };
     const handleSort = (column, sortDirection) => console.log(column.selector, sortDirection);
     return (
-        <DataTable
+        <>
+          <DataTable
             title="ALL Bookings"
             columns={columns}
             data={bookdata}
-            expandableRows expandableRowsComponent={ExpandedComponent}
             pagination
             highlightOnHover
-		    pointerOnHover
+            pointerOnHover
             onSort={handleSort}
-            
-        />
-    )
+          />
+    
+          {/* Dialog for Approve */}
+          <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+            <DialogTitle>Approve Booking</DialogTitle>
+            <DialogContent>
+              <p>Select a status for booking ID: {selectedRow?.id}</p>
+              <Select
+                value={selectedStatus}
+                onChange={handleStatusChange}
+                fullWidth
+              >
+                {Object.keys(statusMapping).map((key) => (
+                  <MenuItem key={key} value={key}>
+                    {statusMapping[key].label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>Cancel</Button>
+              <Button onClick={handleSubmit} color="primary" disabled={!selectedStatus}>
+                Submit
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>
+      );
 }
 
 export default OrderView;

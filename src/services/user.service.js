@@ -49,6 +49,26 @@ class UserService {
       return response.data;
     });
   }
+  approveBookings(bookingId,trackingStatus,approveStatus){
+    const payload = {
+      bookingId: bookingId,
+      trackingStatus: trackingStatus,
+      approveStatus: approveStatus,
+    };
+    return axios.post(API_URL + 'approvebooking',null, { headers: {Authorization: 'Bearer ' + user.jwt},
+      params: {
+        bookingID: bookingId,
+        trackingStatus: trackingStatus,
+        approveStatus: approveStatus,  // Ensure the approveStatus is included here
+      }, })
+    .then(response => {
+      
+      if (response.data) {
+        localStorage.setItem("EnquiryData", JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+  }
 }
 
 export default new UserService();
