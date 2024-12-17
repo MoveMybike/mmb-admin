@@ -69,6 +69,23 @@ class UserService {
       return response.data;
     });
   }
+ 
+  approveEnqiry(enqId, enqStatus){
+
+    return axios.post(API_URL + 'apporvenquirey',null, { headers: {Authorization: 'Bearer ' + user.jwt},
+      params: {
+        approveStatus: enqStatus,
+        enquiryID: enqId
+      }, })
+    .then(response => {
+      
+      if (response.data) {
+        localStorage.setItem("EnquiryData", JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+  }
 }
+
 
 export default new UserService();

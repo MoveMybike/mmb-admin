@@ -172,6 +172,7 @@ const OrderView = ({ bookdata }) => {
             title="ALL Bookings"
             columns={columns}
             data={bookdata}
+            expandableRows expandableRowsComponent={ExpandedComponent}
             pagination
             highlightOnHover
             pointerOnHover
