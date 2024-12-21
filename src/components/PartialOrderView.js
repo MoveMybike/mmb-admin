@@ -1,6 +1,6 @@
-import React,{ useState }   from 'react';
+import React,{ useState,useEffect }   from 'react';
 import DataTable from 'react-data-table-component';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem,TextField,Box } from "@mui/material";
+import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem,TextField,Box, InputLabel, FormControl,CircularProgress } from "@mui/material";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import userService from "../services/user.service";
 
@@ -10,6 +10,11 @@ const PartialOrderView = ({ bookdata }) => {
     const [selectedStatus, setSelectedStatus] = useState("")
     const [openDialog, setOpenDialog] = useState(false);
     const [formData, setFormData] = useState({});
+    const [loading, setLoading] = useState(true);
+
+    const [formCityData, setFdata] = useState({});
+    const [toCityData, setTdata] = useState({});
+    const [priceData, setPriceDetails] = useState(0);
     const statusMapping = {
         O: { label: "Open", color: "lightgreen" },
         R: { label: "Cancelled", color: "red" },
@@ -20,14 +25,28 @@ const PartialOrderView = ({ bookdata }) => {
         Y: { label: "Booking Confirmed", color: "green" }
       };
 
+      useEffect(() => {
+        const cityData = userService.getFromAndToCities()
+        setTimeout(() => {
+          cityData.then((result) => {
+            console.log(result);
+            setFdata(result.fromCities);
+            setTdata(result.toCities);
+            setLoading(false);
+          })
+        }, 1000);
+      }, []);
+  
       const handleConvertClick = (row) => {
         setFormData({
-          Name: row.senderName,
-          MobileNumber: row.senderMobileNumber,
-          toCity: row.toLocation,
-          fromCity: row.fromLocation,
-          Email: row.senderEmail,
+          senderName: row.senderName,
+          senderMobileNumber: row.senderMobileNumber,
+          toCity: row.toCity,
+          fromCity: row.fromCity,
+          senderEmail: row.senderEmail,
           bookingDate: row.bookingDate,
+          serviceType : "",
+          price : 0
         });
         setOpenDialog(true);
       };
@@ -258,32 +277,58 @@ const PartialOrderView = ({ bookdata }) => {
     flexWrap: 'wrap', // Wraps to the next row if needed
   }}
 >
-<Box sx={{ width: '250px' }}>
-          <TextField
-            fullWidth
-            label="To City"
-            name="toCity"
-            value={formData.toCity || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-          </Box>
-          <Box sx={{ width: '250px' }}>
-          <TextField
-            fullWidth
-            label="From City"
-            name="fromCity"
-            value={formData.fromCity || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-          </Box>
+    <Box sx={{ width: '250px' }}>
+      <FormControl fullWidth margin="normal">
+        <InputLabel id="from-city-label">From City</InputLabel>
+        <Select
+          labelId="from-city-label"
+          id="from-city-select"
+          name="fromCity"
+          value={formData.fromCity || ""}
+          onChange={handleChange}
+        >
+    
+          {formCityData.length > 0 ? (
+            formCityData.map((fromCity) => (
+              <MenuItem key={fromCity.id} value={fromCity.location}>
+                {fromCity.location}
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem disabled>No Cities Available</MenuItem>
+          )}
+        </Select>
+      </FormControl>
+    </Box>
+    <Box sx={{ width: '250px' }}>
+      <FormControl fullWidth margin="normal">
+        <InputLabel id="to-city-label">To City</InputLabel>
+        <Select
+          labelId="to-city-label"
+          id="from-city-select"
+          name="toCity"
+          value={formData.toCity || ""}
+          onChange={handleChange}
+        >
+    
+          {formCityData.length > 0 ? (
+            toCityData.map((toCity) => (
+              <MenuItem key={toCity.id} value={toCity.location}>
+                {toCity.location}
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem disabled>No Cities Available</MenuItem>
+          )}
+        </Select>
+      </FormControl>
+    </Box>
 <Box sx={{ width: '250px' }}>
     <TextField
       fullWidth
       label="Name"
-      name="Name"
-      value={formData.Name || ""}
+      name="senderName"
+      value={formData.senderName || ""}
       onChange={handleChange}
       margin="normal"
     />
@@ -292,21 +337,23 @@ const PartialOrderView = ({ bookdata }) => {
     <TextField
       fullWidth
       label="Mobile Number"
-      name="MobileNumber"
-      value={formData.MobileNumber || ""}
+      name="senderMobileNumber"
+      value={formData.senderMobileNumber || ""}
       onChange={handleChange}
       margin="normal"
     />
   </Box>
-  
+  <Box sx={{ width: '250px' }}>
           <TextField
             fullWidth
             label="Email"
-            name="Email"
-            value={formData.Email || ""}
+            name="senderEmail"
+            value={formData.senderEmail || ""}
             onChange={handleChange}
             margin="normal"
           />
+          </Box>
+          <Box sx={{ width: '250px' }}>
           <TextField
             fullWidth
             label="Booking Date"
@@ -315,6 +362,7 @@ const PartialOrderView = ({ bookdata }) => {
             onChange={handleChange}
             margin="normal"
           />
+          </Box>
         {/* <Box sx={{ width: '200px' }}>
         <DatePicker
           label="Booking Date"
@@ -323,7 +371,35 @@ const PartialOrderView = ({ bookdata }) => {
           renderInput={(params) => <TextField {...params} margin="normal" fullWidth />}
         />
       </Box> */}
-          </Box>
+      {/* Booking Type Dropdown */}
+      <Box sx={{ width: '250px' }}>
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="booking-type-label">Booking Type</InputLabel>
+          <Select
+            labelId="booking-type-label"
+            id="booking-type"
+            name="serviceType"
+            value={formData.serviceType | ""}
+            onChange={handleChange}
+          >
+            <MenuItem value="1">Door-Door</MenuItem>
+            <MenuItem value="2">Hub-Hub</MenuItem>
+            <MenuItem value="3">Door-Hub</MenuItem>
+            <MenuItem value="4">Hub-Door</MenuItem>
+          </Select>
+        </FormControl>
+        </Box>
+        <Box sx={{ width: '250px' }}>
+        <TextField
+            fullWidth
+            label="Price"
+            name="price"
+            value={formData.price || 0}
+            onChange={handleChange}
+            margin="normal"
+          />
+  </Box>
+      </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialogConvert}>Cancel</Button>

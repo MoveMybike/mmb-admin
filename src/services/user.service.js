@@ -3,13 +3,14 @@ import authHeader from './auth-header';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL+'/v1/admin/';
 const user = JSON.parse(localStorage.getItem('user'));
+const API_CUS_URL = process.env.REACT_APP_BACKEND_URL+'/v1/cus/';
 
 class UserService {
   // getPublicContent() {
   //   return axios.get(API_URL + 'all');
   // }
   getFromCities() {
-    return axios.get(API_URL + 'getfromcity', { headers: {Authorization: 'Bearer ' + user.jwt} })
+    return axios.get(API_CUS_URL + 'getfromcity', { headers: {Authorization: 'Bearer ' + user.jwt} })
     .then(response => {
       if (response.data) {
         localStorage.setItem("getfromcity", JSON.stringify(response.data));
@@ -17,6 +18,17 @@ class UserService {
       return response.data;
     });
   }
+  getToCities() {
+    return axios.get(API_CUS_URL + 'gettocity', { headers: {Authorization: 'Bearer ' + user.jwt} })
+    .then(response => {
+      if (response.data) {
+        localStorage.setItem("gettocity", JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+  }
+
+  
 
   getUserBoard() {
     return axios.get(API_URL + 'user', { headers: authHeader() });
@@ -85,6 +97,30 @@ class UserService {
       return response.data;
     });
   }
+  getFromAndToCities() {
+    return axios.get(API_CUS_URL + 'home')
+    .then(response => {
+      if (response.data) {
+        localStorage.setItem("cityData", JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+  }
+
+  getFromAndToCitiesPrice(fromCityId,toCityId) {
+    return axios.get(API_CUS_URL +"fromtoprice?tocityId=" +
+      toCityId +
+      "&fromcityid=" +
+      fromCityId)
+    .then(response => {
+      if (response.data) {
+        localStorage.setItem("priceDetais", JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+  }
+
+
 }
 
 
