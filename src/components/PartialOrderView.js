@@ -1,10 +1,13 @@
 import React,{ useState,useEffect }   from 'react';
 import DataTable from 'react-data-table-component';
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem,TextField,Box, InputLabel, FormControl,CircularProgress } from "@mui/material";
-import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+// import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import userService from "../services/user.service";
-
-const PartialOrderView = ({ bookdata }) => {
+import moment from 'moment';
+// import DatePicker from "react-datepicker";
+// // import Moment from "moment";
+// import "react-datepicker/dist/react-datepicker.css";
+const PartialOrderView = ({ bookdata ,handleEnqRowUpdate}) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
     const [selectedStatus, setSelectedStatus] = useState("")
@@ -12,9 +15,17 @@ const PartialOrderView = ({ bookdata }) => {
     const [formData, setFormData] = useState({});
     const [loading, setLoading] = useState(true);
 
-    const [formCityData, setFdata] = useState({});
-    const [toCityData, setTdata] = useState({});
+    const [formCityData, setFdata] = useState([]);
+    const [toCityData, setTdata] = useState([]);
     const [priceData, setPriceDetails] = useState(0);
+
+    const [fromCityId, setFromCityId] = useState(0);
+    const [toCityId, setToCityId] = useState(0);
+
+    const [updatedValue, setUpdatedValue] = useState(priceData)
+
+    const [selectedOption, setSelectedOption] = useState("");
+
     const statusMapping = {
         O: { label: "Open", color: "lightgreen" },
         R: { label: "Cancelled", color: "red" },
@@ -24,7 +35,11 @@ const PartialOrderView = ({ bookdata }) => {
         N: { label: "No Response", color: "gray" },
         Y: { label: "Booking Confirmed", color: "green" }
       };
-
+      const handleUpdate = (bookingId,approveStatus) => {
+        // Example of updating the row with new data
+        const updatedRow = { enquiryStatus: approveStatus}; // Simulate an updated status
+        handleEnqRowUpdate(bookingId, updatedRow);
+      };
       useEffect(() => {
         const cityData = userService.getFromAndToCities()
         setTimeout(() => {
@@ -36,17 +51,83 @@ const PartialOrderView = ({ bookdata }) => {
           })
         }, 1000);
       }, []);
+
+      useEffect(() => {
+        fetchPriceDetails();
+      }, [fromCityId, toCityId]);
+      useEffect(() => {
+        const defaultFrom = formCityData.find((city) => city.location === formData.fromLocation);
+        const defaultTo = toCityData.find((city) => city.location === formData.toLocation);
+    let fromshortcode=""
+        let toshortcode=""
+        if (defaultFrom) {
+          setFromCityId(defaultFrom.id);
+          fromshortcode=defaultFrom.shortcode;
+        }
+        if (defaultTo) 
+          {
+            setToCityId(defaultTo.id);
+            toshortcode=defaultTo.shortcode;
+          }
+        setFormData((prevData) => ({
+          ...prevData,
+        fromCityShortCode: fromshortcode,
+        toCityShortcode :toshortcode
+        }));
+      }, [formCityData, toCityData, formData.fromLocation, formData.toLocation]);
+
+      const fetchPriceDetails = async () => {
+        if (fromCityId && toCityId) {
+          try {
+            const data = await userService.getFromAndToCitiesPrice(fromCityId, toCityId);
+            setPriceDetails(data);
+          } catch (error) {
+            console.error('Failed to fetch price details:', error);
+          }
+        }
+      };
+    
   
       const handleConvertClick = (row) => {
         setFormData({
           senderName: row.senderName,
           senderMobileNumber: row.senderMobileNumber,
-          toCity: row.toCity,
-          fromCity: row.fromCity,
+          toLocation: row.toCity,
+          fromLocation: row.fromCity,
           senderEmail: row.senderEmail,
+          fromCityShortCode :"",
+          toCityShortcode:"",
+          // bookingDate: row.bookingDate ? moment(row.bookingDate, 'MM/dd/yyyy').toDate() : null,
           bookingDate: row.bookingDate,
-          serviceType : "",
-          price : 0
+          // serviceType : "",
+          // price : updatedValue,
+          pickupType: 1,
+          deliveryType: 1,
+          damageScheme: "N",
+          bookingType: 1,
+          toAdress: {
+            streetDoordel: "",
+            cityDoordel: "",
+            stateDoordel: "",
+            zipDoordel: "",
+          },
+          fromAdress: {
+            streetDoorpick: "",
+            cityDoorpick: "",
+            stateDoorpick: "",
+            zipDoorpick: "",
+          },
+          assureScheme: "N",
+          priceDetails: {
+            totalCharges: updatedValue,
+            frieghtCharges: formData.priceData,
+            taxamt: 0,
+            deliveryCharge: 0,
+            pickupCharge: 0,
+            doordelCharge: 0,
+            damageCharge: 0,
+          },
+
         });
         setOpenDialog(true);
       };
@@ -62,16 +143,22 @@ const PartialOrderView = ({ bookdata }) => {
       };
       const handleCloseDialogConvert = () => {
         setOpenDialog(false);
+        setSelectedOption(0)
+        setFormData(null)
+        setFromCityId(0);
+        setPriceDetails(0)
+        setUpdatedValue(0)
       };
       const handleSubmit = async () => {
-        alert("Enquiry Test")
         try {
         const enqId = selectedRow.id; // Example booking ID
         const enqStatus = selectedStatus; // Example tracking status
       
           const result = await userService.approveEnqiry(enqId, enqStatus);
+          handleUpdate(result.id,result.enquiryStatus)
           alert("Enquiry Submited successfully!");
           console.log("Approval Result:", result);
+          handleCloseDialog();
         } catch (error) {
           alert("Failed to approve booking. Please try again.");
           console.error("Approval Error:", error);
@@ -79,8 +166,10 @@ const PartialOrderView = ({ bookdata }) => {
       };
       
       const handleConvert = async () => {
-        alert("Enquiry Test")
+        alert("Enquiry Booking")
         console.log("Form submitted with data: ", formData);
+       const response=userService.convertBooking(formData);
+       console.log("convert response",response)
         // Perform API call or processing here
         setOpenDialog(false);
         // try {
@@ -105,19 +194,132 @@ const PartialOrderView = ({ bookdata }) => {
           ...prevData,
           [name]: value,
         }));
+
+        if (name === "fromCity") {
+          setFromCityId(parseInt(e.target.value));
+        } else if (name === "toCity") {
+          setToCityId(parseInt(e.target.value));
+        }
+        if(name==="serviceType")
+        {
+        // let servicePrice=0;
+        //   if(value==1)
+        //     servicePrice=1200;
+        //   else if(value==3 || value ==4)
+        //      servicePrice=600;
+        //  const priceVal=priceData+servicePrice;
+        //  setPriceDetails(priceVal);
+        handleDropdownChange(e);
+        }
+        if(name==="price")
+        {
+          handleMainValueChange(e)
+        }
       };
+
+      const handleMainValueChange = (event) => {
+        const value = parseInt(event.target.value, 10) || 0;
+        setPriceDetails(value);
+    
+        // Update updatedValue if a dependent selection exists
+        if (selectedOption === "1") {
+          setUpdatedValue(value + 1000);
+        } else if (selectedOption === "2" || selectedOption === "3") {
+          setUpdatedValue(value + 500);
+        } else if (selectedOption === "4") {
+          setUpdatedValue(value);
+        }
+        let taxamt=updatedValue * 0.18;
+        setFormData((prevData) => ({
+          ...prevData,
+          priceDetails: {
+          ...prevData.priceDetails,
+           totalCharges: updatedValue,
+           frieghtCharges: value,
+           taxamt: taxamt,
+          },
+        }));
+      };
+    
+      const handleDropdownChange = (event) => {
+        const value = event.target.value;
+    
+        let newValue = priceData;
+    
+        if (value === "1") {
+          newValue = priceData + 1000; // Add 1000 for option 1
+          formDateSet(1)
+        } else if (value === "2" || value === "3") {
+          newValue = priceData + 500; // Add 500 for option 2 or 3
+        } else if (value === "4") {
+          newValue = priceData; // No change for option 4
+        }
+        let taxamt = parseInt(newValue) * 0.18;
+        
+        setUpdatedValue(newValue+taxamt);
+
+        setFormData((prevData) => ({
+          ...prevData,
+          priceDetails: {
+          ...prevData.priceDetails,
+           totalCharges: updatedValue,
+           frieghtCharges: newValue,
+           taxamt: taxamt,
+          },
+        }));
+        setSelectedOption(value);
+      };
+      
+      const formDateSet=(val)=>
+        {
+          let pickupCharge=0;
+          let doordelCharge=0;
+         let pickupType=1;
+         let deliveryType=1;
+          if(val=1)
+          {
+            pickupType=2;
+            deliveryType=2;
+             pickupCharge=500;
+             doordelCharge=500;
+          }
+          else if(val==2)
+          {
+            pickupType=2;
+            pickupCharge=500;
+            doordelCharge=0;
+          }
+          else if(val==3)
+          {
+            deliveryType=2;
+            pickupCharge=0;
+            doordelCharge=500;
+          }
+          setFormData((prevData) => ({
+            ...prevData,
+            deliveryType:deliveryType,
+            pickupType:pickupType,
+            priceDetails: {
+            ...prevData.priceDetails,
+              deliveryCharge: 0,
+              pickupCharge: pickupCharge,
+              doordelCharge: doordelCharge,
+              damageCharge: 0,
+            },
+          }));
+        } 
     const columns = [
         {
             name: "Actions",
             cell: (row) => (
             <div style={{ display: "flex", gap: "5px" }}>
-                <button
+                {/* <button
                   onClick={() => handleConvertClick(row)}
                   className="btn-enq"
                   style={{ width: "70px" }}
                 >
                   Convert
-                </button>
+                </button> */}
                 <button
                   onClick={() => handleApprove(row)}
                   className="btn-approve"
@@ -238,7 +440,7 @@ const PartialOrderView = ({ bookdata }) => {
             expandableRows expandableRowsComponent={ExpandedComponent}
             pagination
             highlightOnHover
-		    pointerOnHover
+		        pointerOnHover
             onSort={handleSort}
             
         />
@@ -246,7 +448,7 @@ const PartialOrderView = ({ bookdata }) => {
          <Dialog open={dialogOpen} onClose={handleCloseDialog}>
          <DialogTitle>Approve Booking</DialogTitle>
          <DialogContent>
-           <p>Select a status for booking ID: {selectedRow?.id}</p>
+           <p>Select a status for Enquiry ID: {selectedRow?.id}</p>
            <Select
              value={selectedStatus}
              onChange={handleStatusChange}
@@ -283,8 +485,8 @@ const PartialOrderView = ({ bookdata }) => {
         <Select
           labelId="from-city-label"
           id="from-city-select"
-          name="fromCity"
-          value={formData.fromCity || ""}
+          name="fromLocation"
+          value={formData.fromLocation || ""}
           onChange={handleChange}
         >
     
@@ -306,8 +508,8 @@ const PartialOrderView = ({ bookdata }) => {
         <Select
           labelId="to-city-label"
           id="from-city-select"
-          name="toCity"
-          value={formData.toCity || ""}
+          name="toLocation"
+          value={formData.toLocation || ""}
           onChange={handleChange}
         >
     
@@ -363,14 +565,16 @@ const PartialOrderView = ({ bookdata }) => {
             margin="normal"
           />
           </Box>
-        {/* <Box sx={{ width: '200px' }}>
-        <DatePicker
-          label="Booking Date"
-          value={formData.bookingDate} // Controlled value for DatePicker
-          onChange={handleChange('bookingDate')} // Update the date in state
-          renderInput={(params) => <TextField {...params} margin="normal" fullWidth />}
-        />
-      </Box> */}
+          {/* <Box sx={{ width: '250px' }}>
+          <DatePicker
+          selected={formData.bookingDate}
+          name="bookingDate"
+          //   onChange={date => setStartDate(date)}
+          onChange={handleChange}
+          minDate={new Date()}
+          dateFormat="MM/dd/yyyy"
+    />
+          </Box> */}
       {/* Booking Type Dropdown */}
       <Box sx={{ width: '250px' }}>
         <FormControl fullWidth margin="normal">
@@ -379,24 +583,27 @@ const PartialOrderView = ({ bookdata }) => {
             labelId="booking-type-label"
             id="booking-type"
             name="serviceType"
-            value={formData.serviceType | ""}
+            value={selectedOption}
             onChange={handleChange}
           >
+            <MenuItem value="">Select</MenuItem>
             <MenuItem value="1">Door-Door</MenuItem>
-            <MenuItem value="2">Hub-Hub</MenuItem>
-            <MenuItem value="3">Door-Hub</MenuItem>
-            <MenuItem value="4">Hub-Door</MenuItem>
+            <MenuItem value="4">Hub-Hub</MenuItem>
+            <MenuItem value="2">Door-Hub</MenuItem>
+            <MenuItem value="3">Hub-Door</MenuItem>
           </Select>
         </FormControl>
         </Box>
         <Box sx={{ width: '250px' }}>
         <TextField
+            type="number"
             fullWidth
             label="Price"
             name="price"
-            value={formData.price || 0}
+            value={formData.price || updatedValue!=0 ? updatedValue:priceData}
             onChange={handleChange}
             margin="normal"
+            disabled 
           />
   </Box>
       </Box>

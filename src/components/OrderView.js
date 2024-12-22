@@ -4,11 +4,15 @@ import userService from "../services/user.service";
 
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem } from "@mui/material";
 
-const OrderView = ({ bookdata }) => {
+const OrderView = ({ bookdata,onUpdateRow }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
     const [selectedStatus, setSelectedStatus] = useState("")
 
+    const handleUpdate = (bookingId,approveStatus) => {
+      const updatedRow = { status: approveStatus};
+      onUpdateRow(bookingId, updatedRow);
+    };
     const statusMapping = {
         O: { label: "Open", color: "lightgreen" },
         R: { label: "Cancelled", color: "red" },
@@ -38,7 +42,9 @@ const OrderView = ({ bookdata }) => {
           const approveStatus = selectedStatus; // Example approve status
       
           const result = await userService.approveBookings(bookingId, trackingStatus, approveStatus);
+          handleUpdate(result.id,result.bookingStatus);
           alert("Booking approved successfully!");
+          handleCloseDialog();
           console.log("Approval Result:", result);
         } catch (error) {
           alert("Failed to approve booking. Please try again.");
@@ -188,13 +194,20 @@ const OrderView = ({ bookdata }) => {
                 value={selectedStatus}
                 onChange={handleStatusChange}
                 fullWidth
+                displayEmpty
               >
+                {/* Placeholder option */}
+                <MenuItem value="" disabled>
+                  Select Status
+                </MenuItem>
+                {/* Dynamically rendered options */}
                 {Object.keys(statusMapping).map((key) => (
                   <MenuItem key={key} value={key}>
                     {statusMapping[key].label}
                   </MenuItem>
                 ))}
               </Select>
+
             </DialogContent>
             <DialogActions>
               <Button onClick={handleCloseDialog}>Cancel</Button>

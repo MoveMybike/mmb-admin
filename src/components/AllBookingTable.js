@@ -13,7 +13,12 @@ function AllBookingTable() {
       setBookdata(result)
     })
   }, [user.jwt]); 
-  
+  const handleRowUpdate = (bookingId, updatedRowData) => {
+    const updatedData = bookdata.map((row) =>
+      row.id === bookingId ? { ...row, ...updatedRowData } : row
+    );
+    setBookdata(updatedData);
+  };
   return (
     bookdata != null ? (
       <div className='row p-1 pt-5'>
@@ -21,7 +26,7 @@ function AllBookingTable() {
           <SideNavComponent />
         </div>
         <div className='col-md-10'>
-          <OrderView bookdata={bookdata}/>
+          <OrderView bookdata={bookdata} onUpdateRow={handleRowUpdate} />
         </div>
     </div>
       ) : (

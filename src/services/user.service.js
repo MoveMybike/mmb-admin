@@ -107,20 +107,34 @@ class UserService {
     });
   }
 
-  getFromAndToCitiesPrice(fromCityId,toCityId) {
-    return axios.get(API_CUS_URL +"fromtoprice?tocityId=" +
-      toCityId +
-      "&fromcityid=" +
-      fromCityId)
-    .then(response => {
+  getFromAndToCitiesPrice = async (fromCityId, toCityId) => {
+    try {
+      const response = await axios.get(
+        `${API_CUS_URL}fromtoprice?tocityId=${toCityId}&fromcityid=${fromCityId}`
+      );
       if (response.data) {
-        localStorage.setItem("priceDetais", JSON.stringify(response.data));
+        localStorage.setItem("priceData", JSON.stringify(response.data));
+      }
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching price details", error);
+    }
+  };
+
+
+  convertBooking(formData){
+    const payload = {
+     formData:formData
+    };
+    return axios.post(API_CUS_URL + 'createorder',formData)
+    .then(response => {
+      
+      if (response.data) {
+        localStorage.setItem("AllBooking", JSON.stringify(response.data));
       }
       return response.data;
     });
   }
-
-
 }
 
 
