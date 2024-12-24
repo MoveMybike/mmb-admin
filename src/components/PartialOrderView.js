@@ -4,9 +4,6 @@ import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, Menu
 // import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import userService from "../services/user.service";
 import moment from 'moment';
-// import DatePicker from "react-datepicker";
-// // import Moment from "moment";
-// import "react-datepicker/dist/react-datepicker.css";
 const PartialOrderView = ({ bookdata ,handleEnqRowUpdate}) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
@@ -157,7 +154,6 @@ const PartialOrderView = ({ bookdata ,handleEnqRowUpdate}) => {
           const result = await userService.approveEnqiry(enqId, enqStatus);
           handleUpdate(result.id,result.enquiryStatus)
           alert("Enquiry Submited successfully!");
-          console.log("Approval Result:", result);
           handleCloseDialog();
         } catch (error) {
           alert("Failed to approve booking. Please try again.");
