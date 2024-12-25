@@ -14,7 +14,12 @@ function BookingEnquiryTable() {
       setBookdata(result)
     })
   }, [user.jwt]); 
-  
+  const handleEnqRowUpdate = (enqId, updatedRowData) => {
+    const updatedData = bookdata.map((row) =>
+      row.id === enqId ? { ...row, ...updatedRowData } : row
+    );
+    setBookdata(updatedData);
+  };
   return (
     bookdata != null ? (
       <div className='row p-1 pt-5'>
@@ -22,7 +27,7 @@ function BookingEnquiryTable() {
           <SideNavComponent />
         </div>
         <div className='col-md-10'>
-          <PartialOrderView bookdata={bookdata}/>
+          <PartialOrderView bookdata={bookdata} handleEnqRowUpdate={handleEnqRowUpdate} />
         </div> 
     </div>
       ) : (
