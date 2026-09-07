@@ -13,12 +13,15 @@ import BoardUser from "./components/board-user.component";
 import BoardModerator from "./components/board-moderator.component";
 import BoardAdmin from "./components/board-admin.component";
 
-// import AuthVerify from "./common/auth-verify";
+import AuthVerify from "./common/auth-verify";
 import EventBus from "./common/EventBus";
 import AllBookingTable from "./components/AllBookingTable";
-import FromCitiDataTable from "./components/FromCitiDataTable";
+import FromCityDataTable from "./components/FromCityDataTable";
 import BookingEnquiryTable from "./components/BookingEnquiryTable";
 import image from "./logo.png";
+import { UserProvider } from "./Context/MyContext";
+import ToCityDataTable from "./components/ToCityDataTable";
+import PriceDataTable from "./components/PriceDataTable";
 
 class App extends Component {
   constructor(props) {
@@ -59,12 +62,18 @@ class App extends Component {
       showAdminBoard: false,
       currentUser: undefined,
     });
+
+    // Send the user to the login screen after an automatic/session logout.
+    if (window.location.pathname !== "/login") {
+      window.location.assign("/login");
+    }
   }
 
   render() {
     const { currentUser, showModeratorBoard, showAdminBoard } = this.state;
 
     return (
+      <UserProvider>
       <div>
         <nav className="navbar navbar-expand navbar-dark">
           <Link to={"/"} className="navbar-brand">
@@ -136,7 +145,7 @@ class App extends Component {
           )}
         </nav>
 
-        <div className="mt-3">
+        <div className="mt-3" style={{overflowX: 'hidden'}}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
@@ -147,13 +156,16 @@ class App extends Component {
             <Route path="/mod" element={<BoardModerator />} />
             <Route path="/admin" element={<AllBookingTable />} />
             <Route path="/bookings" element={<AllBookingTable />} />
-            <Route path="/fromCities" element={<FromCitiDataTable />} />
+            <Route path="/fromCities" element={<FromCityDataTable />} />
+            <Route path="/toCities" element={<ToCityDataTable />} />
             <Route path="/enquiries" element={<BookingEnquiryTable />} />
+            <Route path="/prices" element={<PriceDataTable />} />
           </Routes>
         </div>
 
-        {/* <AuthVerify logOut={this.logOut}/> */}
+        <AuthVerify logOut={this.logOut} />
       </div>
+      </UserProvider>
     );
   }
 }

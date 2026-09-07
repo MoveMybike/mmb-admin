@@ -15,10 +15,11 @@ const AuthVerify = (props) => {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
 
-    if (user) {
-      const decodedJwt = parseJwt(user.accessToken);
+    if (user && user.jwt) {
+      const decodedJwt = parseJwt(user.jwt);
 
-      if (decodedJwt.exp * 1000 < Date.now()) {
+      // No exp claim or already past exp -> session expired, log out.
+      if (!decodedJwt || decodedJwt.exp * 1000 < Date.now()) {
         props.logOut();
       }
     }

@@ -1,618 +1,664 @@
-import React,{ useState,useEffect }   from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import DataTable from 'react-data-table-component';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem,TextField,Box, InputLabel, FormControl,CircularProgress } from "@mui/material";
-// import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem, TextField, Box, InputLabel, FormControl, IconButton, Tooltip, Menu, ListItemText, Checkbox, Divider } from "@mui/material";
+import SettingsIcon from "@mui/icons-material/Settings";
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import userService from "../services/user.service";
-import moment from 'moment';
-const PartialOrderView = ({ bookdata ,handleEnqRowUpdate}) => {
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [selectedRow, setSelectedRow] = useState(null);
-    const [selectedStatus, setSelectedStatus] = useState("")
-    const [openDialog, setOpenDialog] = useState(false);
-    const [formData, setFormData] = useState({});
-    const [loading, setLoading] = useState(true);
+import "../App.css";
+import AddEnquirypopup from './AddEnquirypopup';
+import { UserContext, UserDispatchContext } from '../Context/MyContext';
+import CustomSelect from './SelectComponent';
+import { DetailPanel, DetailRow } from './DetailRow';
 
-    const [formCityData, setFdata] = useState([]);
-    const [toCityData, setTdata] = useState([]);
-    const [priceData, setPriceDetails] = useState(0);
 
-    const [fromCityId, setFromCityId] = useState(0);
-    const [toCityId, setToCityId] = useState(0);
+const PartialOrderView = ({
+  bookdata,
+  handleEnqRowUpdate,
+  paginationServer = false,
+  paginationTotalRows = 0,
+  paginationDefaultPage = 1,
+  paginationPerPage = 50,
+  progressPending = false,
+  onChangePage,
+  onChangeRowsPerPage,
+}) => {
+  const userDetails = React.useContext(UserContext);
+  const setUserDetails = useContext(UserDispatchContext);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState("")
+  const [openDialog, setOpenDialog] = useState(false);
+  const [formCityData, setFdata] = useState([]);
+  const [toCityData, setTdata] = useState([]);
+  const [priceData, setPriceDetails] = useState(0);
 
-    const [updatedValue, setUpdatedValue] = useState(priceData)
+  // Audit columns are hidden by default; users can turn them on via the gear menu.
+  const AUDIT_COLUMNS = ['Created Date', 'Created By', 'Last Updated Date', 'Last Updated By'];
+  const COL_PREF_KEY = 'bookingEnquiryHiddenColumns';
+  const [colMenuAnchor, setColMenuAnchor] = useState(null);
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COL_PREF_KEY);
+      return saved ? JSON.parse(saved) : AUDIT_COLUMNS;
+    } catch (e) {
+      return AUDIT_COLUMNS;
+    }
+  });
 
-    const [selectedOption, setSelectedOption] = useState("");
+  useEffect(() => {
+    try {
+      localStorage.setItem(COL_PREF_KEY, JSON.stringify(hiddenColumns));
+    } catch (e) {
+      /* ignore storage failures */
+    }
+  }, [hiddenColumns]);
+  const defaultError = {
+      mobileError: null,
+      nameError: null,
+      emailError: null,
+      fromCityError: null,
+      toCityError: null,
+      otherToCityError: null,
+      otherFromCityError: null,
+      dateError: null,
+      bookType: null,
+      serviceTypeError: null
+    }
+    const [defaultState, setDefaultState] = useState(defaultError);
 
-    const statusMapping = {
-        O: { label: "Open", color: "lightgreen" },
-        R: { label: "Cancelled", color: "red" },
-        P: { label: "Postponed", color: "orange" },
-        U: { label: "Customer Confirmation", color: "vilot" },
-        M: { label: "MMMB Confirmation", color: "purple" },
-        N: { label: "No Response", color: "gray" },
-        Y: { label: "Booking Confirmed", color: "green" }
-      };
-      const handleUpdate = (bookingId,approveStatus) => {
-        // Example of updating the row with new data
-        const updatedRow = { enquiryStatus: approveStatus}; // Simulate an updated status
-        handleEnqRowUpdate(bookingId, updatedRow);
-      };
-      useEffect(() => {
-        const cityData = userService.getFromAndToCities()
-        setTimeout(() => {
-          cityData.then((result) => {
-            console.log(result);
-            setFdata(result.fromCities);
-            setTdata(result.toCities);
-            setLoading(false);
-          })
-        }, 1000);
-      }, []);
+  const [updatedValue, setUpdatedValue] = useState(priceData)
 
-      useEffect(() => {
-        fetchPriceDetails();
-      }, [fromCityId, toCityId]);
-      useEffect(() => {
-        const defaultFrom = formCityData.find((city) => city.location === formData.fromLocation);
-        const defaultTo = toCityData.find((city) => city.location === formData.toLocation);
-    let fromshortcode=""
-        let toshortcode=""
-        if (defaultFrom) {
-          setFromCityId(defaultFrom.id);
-          fromshortcode=defaultFrom.shortcode;
-        }
-        if (defaultTo) 
-          {
-            setToCityId(defaultTo.id);
-            toshortcode=defaultTo.shortcode;
-          }
-        setFormData((prevData) => ({
-          ...prevData,
-        fromCityShortCode: fromshortcode,
-        toCityShortcode :toshortcode
-        }));
-      }, [formCityData, toCityData, formData.fromLocation, formData.toLocation]);
+  const [selectedOption, setSelectedOption] = useState("");
+  const defaultCloseData = {
+    bookingDate: new Date(),
+    priceDetails: {
+      totalCharges: 0,
+      frieghtCharges: 0,
+      taxamt: 0
+    },
+    serviceType: ''
+  }
 
-      const fetchPriceDetails = async () => {
-        if (fromCityId && toCityId) {
-          try {
-            const data = await userService.getFromAndToCitiesPrice(fromCityId, toCityId);
-            setPriceDetails(data);
-          } catch (error) {
-            console.error('Failed to fetch price details:', error);
-          }
-        }
-      };
-    
-  
-      const handleConvertClick = (row) => {
-        setFormData({
-          senderName: row.senderName,
-          senderMobileNumber: row.senderMobileNumber,
-          toLocation: row.toCity,
-          fromLocation: row.fromCity,
-          senderEmail: row.senderEmail,
-          fromCityShortCode :"",
-          toCityShortcode:"",
-          // bookingDate: row.bookingDate ? moment(row.bookingDate, 'MM/dd/yyyy').toDate() : null,
-          bookingDate: row.bookingDate,
-          // serviceType : "",
-          // price : updatedValue,
-          pickupType: 1,
-          deliveryType: 1,
-          damageScheme: "N",
-          bookingType: 1,
-          toAdress: {
-            streetDoordel: "",
-            cityDoordel: "",
-            stateDoordel: "",
-            zipDoordel: "",
-          },
-          fromAdress: {
-            streetDoorpick: "",
-            cityDoorpick: "",
-            stateDoorpick: "",
-            zipDoorpick: "",
-          },
-          assureScheme: "N",
+  const statusMapping = {
+    O: { label: "Open", color: "lightgreen" },
+    R: { label: "Cancelled", color: "red" },
+    P: { label: "Postponed", color: "orange" },
+    U: { label: "Customer Confirmation", color: "vilot" },
+    M: { label: "MMMB Confirmation", color: "purple" },
+    N: { label: "No Response", color: "gray" },
+    Y: { label: "Booking Confirmed", color: "green" },
+    Z : { label: "Booking Converted", color: "Yellow" }
+  };
+  const handleUpdate = (bookingId, approveStatus) => {
+    // Example of updating the row with new data
+    const updatedRow = { enquiryStatus: approveStatus }; // Simulate an updated status
+    handleEnqRowUpdate(bookingId, updatedRow);
+  };
+
+  useEffect(() => {
+    const cityData = userService.getFromAndToCities()
+    setTimeout(() => {
+      cityData.then((result) => {
+        setFdata(result.fromCities);
+        setTdata(result.toCities);
+      })
+    }, 1000);
+  }, []);
+
+
+  useEffect(() => {
+    fetchPriceDetails1();
+  }, [userDetails.fromCityId && userDetails.toCityId]);
+  useEffect(() => {
+    totalAmountCal1();
+  }, [userDetails.serviceType, userDetails.priceDetails.frieghtCharges]);
+
+  const fetchPriceDetails1 = async () => {
+    if (userDetails.fromCityId && userDetails.toCityId) {
+      try {
+        const data = await userService.getFromAndToCitiesPrice(userDetails.fromCityId, userDetails.toCityId);
+        setUserDetails((prevState) => ({
+          ...prevState,
           priceDetails: {
-            totalCharges: updatedValue,
-            frieghtCharges: formData.priceData,
-            taxamt: 0,
-            deliveryCharge: 0,
-            pickupCharge: 0,
-            doordelCharge: 0,
-            damageCharge: 0,
-          },
-
-        });
-        setOpenDialog(true);
-      };
-
-    const handleApprove = (row) => {
-        setSelectedRow(row);
-        setDialogOpen(true); // Open the dialog
-      };
-      const handleCloseDialog = () => {
-        setDialogOpen(false); // Close the dialog
-        setSelectedRow(null); // Clear the selected row
-        setSelectedStatus(""); // Reset the selected status
-      };
-      const handleCloseDialogConvert = () => {
-        setOpenDialog(false);
-        setSelectedOption(0)
-        setFormData(null)
-        setFromCityId(0);
-        setPriceDetails(0)
-        setUpdatedValue(0)
-      };
-      const handleSubmit = async () => {
-        try {
-        const enqId = selectedRow.id; // Example booking ID
-        const enqStatus = selectedStatus; // Example tracking status
-      
-          const result = await userService.approveEnqiry(enqId, enqStatus);
-          handleUpdate(result.id,result.enquiryStatus)
-          alert("Enquiry Submited successfully!");
-          handleCloseDialog();
-        } catch (error) {
-          alert("Failed to approve booking. Please try again.");
-          console.error("Approval Error:", error);
-        }
-      };
-      
-      const handleConvert = async () => {
-        alert("Enquiry Booking")
-        console.log("Form submitted with data: ", formData);
-       const response=userService.convertBooking(formData);
-       console.log("convert response",response)
-        // Perform API call or processing here
-        setOpenDialog(false);
-        // try {
-        // const enqId = selectedRow.id; // Example booking ID
-        // const enqStatus = selectedStatus; // Example tracking status
-      
-        //   const result = await userService.approveEnqiry(enqId, enqStatus);
-        //   alert("Enquiry Submited successfully!");
-        //   console.log("Approval Result:", result);
-        // } catch (error) {
-        //   alert("Failed to approve booking. Please try again.");
-        //   console.error("Approval Error:", error);
-        // }
-      };
-      const handleStatusChange = (event) => {
-        setSelectedStatus(event.target.value);
-      };
-
-      const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prevData) => ({
-          ...prevData,
-          [name]: value,
-        }));
-
-        if (name === "fromCity") {
-          setFromCityId(parseInt(e.target.value));
-        } else if (name === "toCity") {
-          setToCityId(parseInt(e.target.value));
-        }
-        if(name==="serviceType")
-        {
-        // let servicePrice=0;
-        //   if(value==1)
-        //     servicePrice=1200;
-        //   else if(value==3 || value ==4)
-        //      servicePrice=600;
-        //  const priceVal=priceData+servicePrice;
-        //  setPriceDetails(priceVal);
-        handleDropdownChange(e);
-        }
-        if(name==="price")
-        {
-          handleMainValueChange(e)
-        }
-      };
-
-      const handleMainValueChange = (event) => {
-        const value = parseInt(event.target.value, 10) || 0;
-        setPriceDetails(value);
-    
-        // Update updatedValue if a dependent selection exists
-        if (selectedOption === "1") {
-          setUpdatedValue(value + 1000);
-        } else if (selectedOption === "2" || selectedOption === "3") {
-          setUpdatedValue(value + 500);
-        } else if (selectedOption === "4") {
-          setUpdatedValue(value);
-        }
-        let taxamt=updatedValue * 0.18;
-        setFormData((prevData) => ({
-          ...prevData,
-          priceDetails: {
-          ...prevData.priceDetails,
-           totalCharges: updatedValue,
-           frieghtCharges: value,
-           taxamt: taxamt,
+            ...prevState.priceDetails,
+            frieghtCharges: data
           },
         }));
-      };
-    
-      const handleDropdownChange = (event) => {
-        const value = event.target.value;
-    
-        let newValue = priceData;
-    
-        if (value === "1") {
-          newValue = priceData + 1000; // Add 1000 for option 1
-          formDateSet(1)
-        } else if (value === "2" || value === "3") {
-          newValue = priceData + 500; // Add 500 for option 2 or 3
-        } else if (value === "4") {
-          newValue = priceData; // No change for option 4
-        }
-        let taxamt = parseInt(newValue) * 0.18;
-        
-        setUpdatedValue(newValue+taxamt);
+      } catch (error) {
+        console.error('Failed to fetch price details:', error);
+      }
+    }
+  }
+  const totalAmountCal1 = () => {
+    if (userDetails.fromCityId && userDetails.toCityId) {
+      const sType = userDetails.serviceType;
+      const serviceCharge = sType === '1' ? 1200 : sType === '2' || sType === '3' ? 600 : null;
+      const taxamt = (userDetails.priceDetails.frieghtCharges + serviceCharge) * 0.18;
+      setUserDetails((prevState) => ({
+        ...prevState,
+        pickupType: userDetails.serviceType ===1 || userDetails.serviceType ===2 ? 2 : 1,
+        deliveryType: userDetails.serviceType ===1 || userDetails.serviceType ===3 ? 2 : 1,
+        priceDetails: {
+          ...prevState.priceDetails,
+          serviceCharge,
+          frieghtCharges: userDetails.priceDetails.frieghtCharges,
+          totalCharges: userDetails.priceDetails.frieghtCharges + serviceCharge + taxamt,
+          taxamt,
+          pickupCharge: userDetails.serviceType ===1 || userDetails.serviceType ===2 ? 600 : 0,
+          doordelCharge: userDetails.serviceType ===1 || userDetails.serviceType ===3 ? 600 : 0
+        },
+      }));
+    }
+  }
 
-        setFormData((prevData) => ({
-          ...prevData,
-          priceDetails: {
-          ...prevData.priceDetails,
-           totalCharges: updatedValue,
-           frieghtCharges: newValue,
-           taxamt: taxamt,
-          },
-        }));
-        setSelectedOption(value);
-      };
-      
-      const formDateSet=(val)=>
-        {
-          let pickupCharge=0;
-          let doordelCharge=0;
-         let pickupType=1;
-         let deliveryType=1;
-          if(val=1)
-          {
-            pickupType=2;
-            deliveryType=2;
-             pickupCharge=500;
-             doordelCharge=500;
-          }
-          else if(val==2)
-          {
-            pickupType=2;
-            pickupCharge=500;
-            doordelCharge=0;
-          }
-          else if(val==3)
-          {
-            deliveryType=2;
-            pickupCharge=0;
-            doordelCharge=500;
-          }
-          setFormData((prevData) => ({
-            ...prevData,
-            deliveryType:deliveryType,
-            pickupType:pickupType,
-            priceDetails: {
-            ...prevData.priceDetails,
-              deliveryCharge: 0,
-              pickupCharge: pickupCharge,
-              doordelCharge: doordelCharge,
-              damageCharge: 0,
-            },
-          }));
-        } 
-    const columns = [
-        {
-            name: "Actions",
-            cell: (row) => (
-            <div style={{ display: "flex", gap: "5px" }}>
-                {/* <button
-                  onClick={() => handleConvertClick(row)}
-                  className="btn-enq"
-                  style={{ width: "70px" }}
-                >
-                  Convert
-                </button> */}
-                <button
-                  onClick={() => handleApprove(row)}
-                  className="btn-approve"
-                  style={{ width: "70px" }}
-                >
-                  Approve
-                </button>
-              </div>
-            ),
-            ignoreRowClick: true,
-            allowOverflow: true,
-            button: true,
-            width: "140px"
-          },          
-          {
-            name: "Enquiry Status",
-            selector: (row) => row.enquiryStatus,
-            cell: (row) => {
-              const status = statusMapping[row.enquiryStatus] || { label: "Unknown", color: "gray" };
-              return (
-                <span style={{ color: status.color, fontWeight: "bold" }}>
-                  {status.label}
-                </span>
-              );
-            },
-            sortable: true,
-            grow: 2
-          },
-        {
-            name: 'Name',
-            selector: row => row.senderName,
-            sortable: true,
-            grow: 2,
-        },
-        {
-            name: 'MobileNumber',
-            selector: row => row.senderMobileNumber,
-            sortable: true,
-        	hide: 'sm',
-        },
-        {
-            name: 'From',
-            selector: row => row.fromCity,
-            sortable: true,
-        	hide: 'sm',
-        },
-        {
-            name: 'To',
-            selector: row => row.toCity,
-            sortable: true,
-        	hide: 'sm',
-        },
-        {
-            name: 'Booking Date',
-            selector: row => row.bookingDate,
-            sortable: true,
-        	hide: 'sm',
-        },
-        {
-            name: 'Created Date',
-            selector: row => row.createDateTime.slice(0,10),
-            sortable: true
-        }
-    ];
-    const ExpandedComponent = ({ data }) =>{
-        return(
-        <div className='row pl-5 expndeddata'>
-            <div className='col-md-6 row'>
-                <div className='col-md-4'>
-                    <h6>From City</h6>
-                </div>
-                <div className='col-md-8'>
-                    <h6><b>{data.fromCity}</b></h6>
-                </div>
-            </div>
-            <div className='col-md-6 row'>
-                <div className='col-md-4'>
-                    <h6>To Address</h6>
-                </div>
-                <div className='col-md-8'>
-                    <h6><b>{data.toCity}</b></h6>
-                </div>
-            </div>
-            <div className='col-md-6 row'>
-                <div className='col-md-4'>
-                <h6>Created Date</h6>
-                </div>
-                <div className='col-md-8'>
-                    <h6><b>{data.createDateTime}</b></h6>
-                </div>
-            </div>
-            <div className='col-md-6 row'>
-                <div className='col-md-4'>
-                    <h6>Mobile Number</h6>
-                </div>
-                <div className='col-md-8'>
-                <h6><b>{data.senderMobileNumber}</b></h6>
-                </div>
-            </div>
-            <div className='col-md-6 row'>
-                <div className='col-md-4'>
-                    <h6>Email</h6>
-                </div>
-                <div className='col-md-8'>
-                <h6><b>{data.senderEmail}</b></h6>
-                </div>
-            </div>
-        </div>
-        )
-    };
-    const handleSort = (column, sortDirection) => console.log(column.selector, sortDirection);
+  console.log(userDetails)
+  const handleConvertClick = (row) => {
+    setSelectedRow(row);
+    const fromCityVer = formCityData.find((city) => city.location === row.fromCity);
+    const fromCityId = fromCityVer !== undefined ? fromCityVer.id : null;
+    const toCityVer = toCityData.find((city) => city.location === row.toCity);
+    const toCityId = toCityVer !== undefined ? toCityVer.id : 0;
+    const toCityShortcode= toCityVer !== undefined ? toCityVer.shortcode : " ";
+    const fromCityShortcode= fromCityVer !== undefined ? fromCityVer.shortcode : " ";
+    setUserDetails({
+      senderName: row.senderName,
+      senderMobileNumber: row.senderMobileNumber,
+      toLocation: row.toCity,
+      fromLocation: row.fromCity,
+      senderEmail: row.senderEmail,
+      fromCityId,
+      toCityId,
+      fromCityShortCode: fromCityShortcode,
+      toCityShortcode: toCityShortcode,
+      // bookingDate: row.bookingDate ? moment(row.bookingDate, 'MM/dd/yyyy').toDate() : null,
+      bookingDate: row.bookingDate,
+      damageScheme :'N',
+      assureScheme : 'N',
+      pickupType: userDetails.serviceType ===1 || userDetails.serviceType ===2 ? 2 : 1,
+      deliveryType: userDetails.serviceType ===1 || userDetails.serviceType ===3 ? 2 : 1,
+      // serviceType : "",
+      priceDetails: {
+        totalCharges: updatedValue,
+        frieghtCharges: userDetails.priceData,
+        taxamt: userDetails.taxamt,
+        deliveryCharge: 0,
+        pickupCharge: userDetails.serviceType ===1 || userDetails.serviceType ===2 ? 600 : 0,
+        doordelCharge: userDetails.serviceType ===1 || userDetails.serviceType ===3 ? 600 : 0,
+        damageCharge: 0,
+      },
+
+    });
+    setOpenDialog(true);
+  };
+
+  const handleApprove = (row) => {
+    setSelectedRow(row);
+    setDialogOpen(true); // Open the dialog
+  };
+  const handleCloseDialog = () => {
+    setDialogOpen(false); // Close the dialog
+    setSelectedRow(null); // Clear the selected row
+    setUserDetails(defaultCloseData);
+    setSelectedStatus(""); // Reset the selected status
+  };
+
+  const handleCloseDialogConvert = () => {
+    setOpenDialog(false);
+    setSelectedOption(0)
+    setUserDetails(defaultCloseData);
+  };
+  const handleSubmit = async () => {
+    try {
+      const enqId = selectedRow.id; // Example booking ID
+      const enqStatus = selectedStatus; // Example tracking status
+      const result = await userService.approveEnqiry(enqId, enqStatus);
+      handleUpdate(result.id, result.enquiryStatus)
+      alert("Enquiry Submited successfully!");
+      handleCloseDialog();
+    } catch (error) {
+      alert("Failed to approve booking. Please try again.");
+      console.error("Approval Error:", error);
+    }
+  };
+  const validate = () => {
+    let emailError = "";
+    let fromCityError = "";
+    let toCityError = "";
+    let mobileError = "";
+    let nameError = "";
+    let otherFromCityError = "";
+    let otherToCityError = "";
+    let serviceTypeError = "";
+    const reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{3})+$/;
+    const pattern = new RegExp(/^[0-9\b]+$/);
+    if (
+      userDetails.serviceType === "" ||
+      userDetails.serviceType === undefined ||
+      userDetails.serviceType === "select"
+    ) {
+      serviceTypeError = "Please select Booking Type";
+    }
+    if (
+      userDetails.fromLocation === "" ||
+      userDetails.fromLocation === undefined ||
+      userDetails.fromLocation === "select" ||
+      (userDetails.fromLocation === userDetails.toLocation)
+    ) {
+      fromCityError = "Please select from location";
+    }
+    if (
+      userDetails.toLocation === "" ||
+      userDetails.toLocation === undefined ||
+      userDetails.toLocation === "select"
+    ) {
+      toCityError = "Please select to location";
+    }
+    if (
+      userDetails.fromLocation === 'Other' && userDetails.fromCityId === 0
+    ) {
+      otherFromCityError = "Please enter other location";
+    }
+    if (
+      userDetails.toLocation === "Other" && userDetails.toCityId === 0
+    ) {
+      otherToCityError = "Please enter other location";
+    }
+    if (
+      userDetails.senderEmail === "" ||
+      userDetails.senderEmail === undefined ||
+      reg.test(userDetails.senderEmail) === false
+    ) {
+      emailError = "Please enter Email";
+    }
+    if (
+      userDetails.senderMobileNumber === "" ||
+      userDetails.senderMobileNumber === undefined ||
+      pattern.test(userDetails.senderMobileNumber) === false ||
+      userDetails.senderMobileNumber.length !== 10
+    ) {
+      mobileError = "Please enter Mobile Number";
+    }
+    if (userDetails.senderName === "" || userDetails.senderName === undefined) {
+      nameError = "Please enter Name";
+    }
+
+    if (
+      mobileError ||
+      emailError ||
+      nameError ||
+      fromCityError ||
+      toCityError ||
+      otherFromCityError ||
+      otherToCityError ||
+      serviceTypeError
+    ) {
+      setDefaultState({
+        mobileError,
+        emailError,
+        nameError,
+        fromCityError,
+        toCityError,
+        otherFromCityError,
+        otherToCityError,
+        serviceTypeError
+      });
+      return false;
+    }
+    return true;
+  };
+  const handleConvert = async () => {
+    // validate();
+    // if (validate()) {
+    setOpenDialog(false);
+    try {
+    const enqId = selectedRow.id; // Example booking ID
+    const enqStatus = userDetails; // Example tracking status
+
+      const result = await userService.convertBooking(userDetails, enqId);
+      alert("Booking Converstion Submited  successfully!");
+      // Mark the enquiry as converted so the Convert button disables right away.
+      handleEnqRowUpdate(enqId, { enquiryStatus: 'Z' });
+      console.log("Approval Result:", result);
+    } catch (error) {
+      alert("Failed to Convert Booking. Please try again.");
+      console.error("Approval Error:", error);
+    }
+    
+  };
+  const handleStatusChange = (event) => {
+    setSelectedStatus(event.target.value);
+  };
+
+  const handleDate = (e) => {
+    setUserDetails((prevData) => ({
+      ...prevData,
+      bookingDate: e,
+    }));
+  }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setUserDetails((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const columns = [
+    {
+      name: "Actions",
+      cell: (row) => {
+        const isConverted = row.enquiryStatus === 'Z';
+        return (
+          <div style={{ display: "flex", gap: "5px" }}>
+            <Button
+              onClick={() => handleConvertClick(row)}
+              className="btnRed"
+              style={{ width: "50px", fontSize: '10px' }}
+              disabled={isConverted}
+              title={isConverted ? 'Booking already converted' : 'Convert'}
+            >
+              Convert
+            </Button>
+            {/* <AddEnquirypopup fdata={formCityData} tdata={toCityData} bType="pBooking" label="Convert" row={row}/> */}
+            <Button
+              onClick={() => handleApprove(row)}
+              className="btnRed-outlined"
+              style={{ width: "50px", fontSize: '10px' }}
+            >
+              Approve
+            </Button>
+          </div>
+        );
+      },
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      width: "140px"
+    },
+    {
+      name: "Enquiry Status",
+      selector: (row) => row.enquiryStatus,
+      cell: (row) => {
+        const status = statusMapping[row.enquiryStatus] || { label: "Unknown", color: "gray" };
+        return (
+          <span style={{ color: status.color, fontWeight: "bold" }}>
+            {status.label}
+          </span>
+        );
+      },
+      sortable: true,
+      grow: 2,
+      minWidth: '170px',
+    },
+    {
+      name: 'Name',
+      selector: row => row.senderName,
+      sortable: true,
+      grow: 2,
+      minWidth: '160px',
+    },
+    {
+      name: 'MobileNumber',
+      selector: row => row.senderMobileNumber,
+      sortable: true,
+      minWidth: '150px',
+    },
+    {
+      name: 'From',
+      selector: row => row.fromCity,
+      sortable: true,
+      minWidth: '140px',
+    },
+    {
+      name: 'To',
+      selector: row => row.toCity,
+      sortable: true,
+      minWidth: '140px',
+    },
+    {
+      name: 'Booking Date',
+      selector: row => row.bookingDate,
+      sortable: true,
+      minWidth: '140px',
+    },
+    {
+      name: 'Created Date',
+      selector: row => (row.createDate ? row.createDate.slice(0, 10) : ''),
+      sortable: true,
+      minWidth: '140px',
+    },
+    {
+      name: 'Created By',
+      selector: row => row.createdBy || '',
+      sortable: true,
+      minWidth: '130px',
+    },
+    {
+      name: 'Last Updated Date',
+      selector: row => (row.lastUpdateDate ? row.lastUpdateDate.slice(0, 10) : ''),
+      sortable: true,
+      minWidth: '150px',
+    },
+    {
+      name: 'Last Updated By',
+      selector: row => row.lastUpdatedBy || '',
+      sortable: true,
+      minWidth: '140px',
+    }
+  ];
+  const ExpandedComponent = ({ data }) => {
     return (
-        <>
+      <DetailPanel>
+        <DetailRow label="From City"><b>{data.fromCity}</b></DetailRow>
+        <DetailRow label="To City"><b>{data.toCity}</b></DetailRow>
+        <DetailRow label="Created Date"><b>{data.createDate}</b></DetailRow>
+        <DetailRow label="Mobile Number"><b>{data.senderMobileNumber}</b></DetailRow>
+        <DetailRow label="Email"><b>{data.senderEmail}</b></DetailRow>
+      </DetailPanel>
+    )
+  };
+  // console.log(userDetails)
+  const handleSort = (column, sortDirection) => console.log(column.selector, sortDirection);
+
+  const visibleColumns = columns.filter((c) => !hiddenColumns.includes(c.name));
+  const openColMenu = (e) => setColMenuAnchor(e.currentTarget);
+  const closeColMenu = () => setColMenuAnchor(null);
+  const toggleColumn = (name) =>
+    setHiddenColumns((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  const resetColumns = () => {
+    setHiddenColumns(AUDIT_COLUMNS);
+    closeColMenu();
+  };
+
+  return (
+    <>
+      <AddEnquirypopup fdata={formCityData} tdata={toCityData} bType="pBooking" label="ADD"/>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <Tooltip title="Show / hide columns">
+          <IconButton onClick={openColMenu} size="small">
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Menu anchorEl={colMenuAnchor} open={Boolean(colMenuAnchor)} onClose={closeColMenu}>
+          {columns
+            .filter((c) => c.name && c.name !== 'Actions')
+            .map((c) => (
+              <MenuItem key={c.name} dense onClick={() => toggleColumn(c.name)}>
+                <Checkbox size="small" checked={!hiddenColumns.includes(c.name)} />
+                <ListItemText>{c.name}</ListItemText>
+              </MenuItem>
+            ))}
+          <Divider />
+          <MenuItem dense onClick={resetColumns}>
+            <ListItemText>Reset to default</ListItemText>
+          </MenuItem>
+        </Menu>
+      </div>
+      <div className="table-scroll">
         <DataTable
-            title="Booking Enquiry"
-            columns={columns}
-            data={bookdata}
-            expandableRows expandableRowsComponent={ExpandedComponent}
-            pagination
-            highlightOnHover
-		        pointerOnHover
-            onSort={handleSort}
-            
+          title="Booking Enquiry"
+          columns={visibleColumns}
+          data={bookdata}
+          expandableRows expandableRowsComponent={ExpandedComponent}
+          pagination
+          paginationServer={paginationServer}
+          paginationTotalRows={paginationTotalRows}
+          paginationDefaultPage={paginationDefaultPage}
+          paginationPerPage={paginationPerPage}
+          paginationRowsPerPageOptions={[10, 25, 50, 100]}
+          progressPending={progressPending}
+          onChangePage={onChangePage}
+          onChangeRowsPerPage={onChangeRowsPerPage}
+          highlightOnHover
+          pointerOnHover
+          onSort={handleSort}
         />
-         {/* Dialog for Approve */}
-         <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-         <DialogTitle>Approve Booking</DialogTitle>
-         <DialogContent>
-           <p>Select a status for Enquiry ID: {selectedRow?.id}</p>
-           <Select
-             value={selectedStatus}
-             onChange={handleStatusChange}
-             fullWidth
-           >
-             {Object.keys(statusMapping).map((key) => (
-               <MenuItem key={key} value={key}>
-                 {statusMapping[key].label}
-               </MenuItem>
-             ))}
-           </Select>
-         </DialogContent>
-         <DialogActions>
-           <Button onClick={handleCloseDialog}>Cancel</Button>
-           <Button onClick={handleSubmit} color="primary" disabled={!selectedStatus}>
-             Submit
-           </Button>
-         </DialogActions>
-       </Dialog>
-        {/* Dialog Component */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Convert Booking</DialogTitle>
-        <DialogContent>
-<Box
-  sx={{
-    display: 'flex', // Enables horizontal layout
-    gap: 2,          // Adds space between the fields
-    flexWrap: 'wrap', // Wraps to the next row if needed
-  }}
->
-    <Box sx={{ width: '250px' }}>
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="from-city-label">From City</InputLabel>
-        <Select
-          labelId="from-city-label"
-          id="from-city-select"
-          name="fromLocation"
-          value={formData.fromLocation || ""}
-          onChange={handleChange}
-        >
-    
-          {formCityData.length > 0 ? (
-            formCityData.map((fromCity) => (
-              <MenuItem key={fromCity.id} value={fromCity.location}>
-                {fromCity.location}
-              </MenuItem>
-            ))
-          ) : (
-            <MenuItem disabled>No Cities Available</MenuItem>
-          )}
-        </Select>
-      </FormControl>
-    </Box>
-    <Box sx={{ width: '250px' }}>
-      <FormControl fullWidth margin="normal">
-        <InputLabel id="to-city-label">To City</InputLabel>
-        <Select
-          labelId="to-city-label"
-          id="from-city-select"
-          name="toLocation"
-          value={formData.toLocation || ""}
-          onChange={handleChange}
-        >
-    
-          {formCityData.length > 0 ? (
-            toCityData.map((toCity) => (
-              <MenuItem key={toCity.id} value={toCity.location}>
-                {toCity.location}
-              </MenuItem>
-            ))
-          ) : (
-            <MenuItem disabled>No Cities Available</MenuItem>
-          )}
-        </Select>
-      </FormControl>
-    </Box>
-<Box sx={{ width: '250px' }}>
-    <TextField
-      fullWidth
-      label="Name"
-      name="senderName"
-      value={formData.senderName || ""}
-      onChange={handleChange}
-      margin="normal"
-    />
-  </Box>
-  <Box sx={{ width: '250px' }}>
-    <TextField
-      fullWidth
-      label="Mobile Number"
-      name="senderMobileNumber"
-      value={formData.senderMobileNumber || ""}
-      onChange={handleChange}
-      margin="normal"
-    />
-  </Box>
-  <Box sx={{ width: '250px' }}>
-          <TextField
-            fullWidth
-            label="Email"
-            name="senderEmail"
-            value={formData.senderEmail || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-          </Box>
-          <Box sx={{ width: '250px' }}>
-          <TextField
-            fullWidth
-            label="Booking Date"
-            name="bookingDate"
-            value={formData.bookingDate || ""}
-            onChange={handleChange}
-            margin="normal"
-          />
-          </Box>
-          {/* <Box sx={{ width: '250px' }}>
-          <DatePicker
-          selected={formData.bookingDate}
-          name="bookingDate"
-          //   onChange={date => setStartDate(date)}
-          onChange={handleChange}
-          minDate={new Date()}
-          dateFormat="MM/dd/yyyy"
-    />
-          </Box> */}
-      {/* Booking Type Dropdown */}
-      <Box sx={{ width: '250px' }}>
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="booking-type-label">Booking Type</InputLabel>
+      </div>
+      {/* Dialog for Approve */}
+      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle>Approve Booking</DialogTitle>
+        <DialogContent className='mt-4'>
+          <p>Select a status for Enquiry ID: {selectedRow?.id}</p>
           <Select
-            labelId="booking-type-label"
-            id="booking-type"
-            name="serviceType"
-            value={selectedOption}
-            onChange={handleChange}
-          >
-            <MenuItem value="">Select</MenuItem>
-            <MenuItem value="1">Door-Door</MenuItem>
-            <MenuItem value="4">Hub-Hub</MenuItem>
-            <MenuItem value="2">Door-Hub</MenuItem>
-            <MenuItem value="3">Hub-Door</MenuItem>
-          </Select>
-        </FormControl>
-        </Box>
-        <Box sx={{ width: '250px' }}>
-        <TextField
-            type="number"
+            value={selectedStatus}
+            onChange={handleStatusChange}
             fullWidth
-            label="Price"
-            name="price"
-            value={formData.price || updatedValue!=0 ? updatedValue:priceData}
-            onChange={handleChange}
-            margin="normal"
-            disabled 
-          />
-  </Box>
-      </Box>
+            variant="standard"
+          >
+            {Object.keys(statusMapping).map((key) => (
+              <MenuItem key={key} value={key}>
+                {statusMapping[key].label}
+              </MenuItem>
+            ))}
+          </Select>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialogConvert}>Cancel</Button>
-          <Button onClick={handleConvert} variant="contained" color="primary">
-            Submit
-          </Button>
+          <Button onClick={handleCloseDialog} className="btnRed">Cancel</Button>
+          <Button onClick={handleSubmit} className="btnRed-outlined" disabled={!selectedStatus}>Convert</Button>
         </DialogActions>
       </Dialog>
-     </>
-    )
+      {/* Dialog Component */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth={'xs'}>
+        <DialogTitle>Convert Booking</DialogTitle>
+        <DialogContent className='mt-4'>
+          <Box
+            sx={{
+              display: 'flex', // Enables horizontal layout
+              gap: 2,          // Adds space between the fields
+              flexWrap: 'wrap', // Wraps to the next row if needed
+            }}
+          >
+            <Box sx={{ width: '175px' }}>
+              <CustomSelect
+                name="fromCityId"
+                options={formCityData}
+                inval={userDetails.fromCityId}
+                fieldtype={"fromCityId"}
+                value1={"fromLocation"}
+                sh={"fromCityShortCode"}
+              />
+              {userDetails.fromCityId === null ? <span className='ml-2'>{userDetails.fromLocation} </span>: null }
+            </Box>
+            <Box sx={{ width: '175px' }}>
+              <CustomSelect
+                name="toCityId"
+                options={toCityData}
+                inval={userDetails.toCityId}
+                fieldtype={"toCityId"}
+                value1={"toLocation"}
+                sh={"toCityShortcode"}
+              />
+              {userDetails.toCityId === null ? <span className='ml-2'>{userDetails.toLocation} </span>: null }
+            </Box>
+            <Box sx={{ width: '175px' }}>
+              <TextField
+                fullWidth
+                variant="standard"
+                label="Name"
+                name="senderName"
+                value={userDetails.senderName || ""}
+                onChange={handleChange}
+                margin="normal"
+              />
+            </Box>
+            <Box sx={{ width: '175px' }}>
+              <TextField
+                fullWidth
+                variant="standard"
+                label="Mobile Number"
+                name="senderMobileNumber"
+                value={userDetails.senderMobileNumber || ""}
+                onChange={handleChange}
+                margin="normal"
+              />
+            </Box>
+            <Box sx={{ width: '175px' }}>
+              <TextField
+                fullWidth
+                variant="standard"
+                label="Email"
+                name="senderEmail"
+                value={userDetails.senderEmail || ""}
+                onChange={handleChange}
+                margin="normal"
+              />
+            </Box>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker label="Booking Date"
+                name="bookingDate"
+                value={dayjs(userDetails.bookingDate)}
+                onChange={handleDate}
+                minDate={dayjs()}
+                slotProps={{ textField: { variant: "standard" } }}
+              />
+            </LocalizationProvider>
+            {/* Booking Type Dropdown */}
+            <Box sx={{ width: '175px' }}>
+              <FormControl fullWidth
+                variant="standard" margin="normal">
+                <InputLabel id="booking-type-label">Booking Type</InputLabel>
+                <Select
+                  labelId="booking-type-label"
+                  id="booking-type"
+                  name="serviceType"
+                  value={userDetails.serviceType || 'Select'}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="">Select</MenuItem>
+                  <MenuItem value="1">Door-Door</MenuItem>
+                  <MenuItem value="4">Hub-Hub</MenuItem>
+                  <MenuItem value="2">Door-Hub</MenuItem>
+                  <MenuItem value="3">Hub-Door</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ width: '175px' }}>
+              <TextField
+                type="number"
+                fullWidth
+                variant="standard"
+                label="Price"
+                name="totalCharges"
+                value={userDetails.priceDetails.totalCharges}
+                onChange={handleChange}
+                margin="normal"
+                disabled
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialogConvert} className="btnRed">Cancel</Button>
+          <Button onClick={handleConvert} className="btnRed-outlined">Convert Booking</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  )
 }
 
 export default PartialOrderView;

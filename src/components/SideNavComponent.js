@@ -46,6 +46,12 @@ export class SideNavComponent extends Component {
               <NavLink className="nav-link" to="/fromCities">
                 From City
               </NavLink>
+              <NavLink className="nav-link" to="/toCities">
+                To City
+              </NavLink>
+              <NavLink className="nav-link" to="/prices">
+                Price
+              </NavLink>
             </NavItem>
           </Nav>
         </Collapse>
