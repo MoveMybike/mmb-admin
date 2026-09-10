@@ -3,7 +3,11 @@ import DataTable from 'react-data-table-component';
 import userService from "../services/user.service";
 import { getFriendlyErrorMessage } from "../services/setup-interceptors";
 
-import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem, IconButton, Tooltip, Menu, ListItemIcon, ListItemText, Checkbox, Divider } from "@mui/material";
+import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Select, MenuItem, IconButton, Tooltip, Menu, ListItemIcon, ListItemText, Checkbox, Divider, TextField, Box, Stack, Typography, FormControl, InputLabel } from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
@@ -17,6 +21,7 @@ import { UserContext, UserDispatchContext } from '../Context/MyContext';
 const OrderView = ({
   bookdata,
   onUpdateRow,
+  onBookingAdded,
   paginationServer = false,
   paginationTotalRows = 0,
   paginationDefaultPage = 1,
@@ -28,6 +33,8 @@ const OrderView = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [postponedDate, setPostponedDate] = useState("");
+  const [approveComments, setApproveComments] = useState("");
   const [formCityData, setFdata] = useState([]);
   const [toCityData, setTdata] = useState([]);
   const userDetails = React.useContext(UserContext);
@@ -68,14 +75,18 @@ const OrderView = ({
     onUpdateRow(bookingId, updatedRow);
   };
   const statusMapping = {
-    O: { label: "Open", color: "lightgreen" },
-    R: { label: "Cancelled", color: "red" },
+    O: { label: "New", color: "lightgreen" },
+    Y: { label: "Booking Confirmed", color: "green" },
+    M: { label: "MMMB Confirmation", color: "purple" },
+    N: { label: "Cancelled", color: "Read" },
+    G: { label: "No Response", color: "gray" },
+    R: { label: "Ready For Pickup", color: "#fd7e14" },
+    H: { label: "Orinign at Hub", color: "#fd7e14" },
+    T: { label: "Transient", color: "#fd7e14" },
+    S: { label: "Origin at Destination", color: "#fd7e14" },
+    L: { label: "Ready For Delivery", color: "#0d6efd" },
     P: { label: "Postponed", color: "orange" },
     U: { label: "Customer Confirmation", color: "vilot" },
-    M: { label: "MMMB Confirmation", color: "purple" },
-    N: { label: "No Response", color: "gray" },
-    Y: { label: "Booking Confirmed", color: "green" },
-    F: { label: "Feedback", color: "pink" },
     C: { label: "Closed", color: "coffe" },
   };
 
@@ -88,7 +99,20 @@ const OrderView = ({
     setDialogOpen(false); // Close the dialog
     setSelectedRow(null); // Clear the selected row
     setSelectedStatus(""); // Reset the selected status
+    setPostponedDate("");
+    setApproveComments("");
   };
+
+  // "Postponed" (P) requires a postponed date; comments stay optional.
+  const isPostponed = selectedStatus === "P";
+
+  // Local-time YYYY-MM-DD for a Date.
+  const toDateStr = (d) => {
+    const x = new Date(d);
+    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+    return x.toISOString().split("T")[0];
+  };
+  const todayStr = toDateStr(new Date());
 
   useEffect(() => {
       fetchPriceDetails1();
@@ -138,7 +162,13 @@ const OrderView = ({
       const trackingStatus = selectedRow.status; // Example tracking status
       const approveStatus = selectedStatus; // Example approve status
 
-      const result = await userService.approveBookings(bookingId, trackingStatus, approveStatus);
+      const result = await userService.approveBookings(
+        bookingId,
+        trackingStatus,
+        approveStatus,
+        approveStatus === "P" ? postponedDate : "",
+        approveComments,
+      );
       handleUpdate(result.id, result.bookingStatus);
       alert("Booking approved successfully!");
       handleCloseDialog();
@@ -151,6 +181,10 @@ const OrderView = ({
 
   const handleStatusChange = (event) => {
     setSelectedStatus(event.target.value);
+    if (event.target.value !== "P") {
+      setPostponedDate("");
+      setApproveComments("");
+    }
   };
   const columns = [
     {
@@ -464,7 +498,7 @@ const OrderView = ({
 
   return (
     <>
-      <AddEnquirypopup fdata={formCityData} tdata={toCityData} bType="booking" />
+      <AddEnquirypopup fdata={formCityData} tdata={toCityData} bType="booking" onAdded={onBookingAdded} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
         <Tooltip title="Show / hide columns">
           <IconButton onClick={openColMenu} size="small">
@@ -508,32 +542,114 @@ const OrderView = ({
       </div>
 
       {/* Dialog for Approve */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-        <DialogTitle>Approve Booking</DialogTitle>
-        <DialogContent className='mt-4'>
-          <p>Select a status for booking ID: {selectedRow?.id}</p>
-          <Select
-            value={selectedStatus}
-            onChange={handleStatusChange}
-            fullWidth
-            displayEmpty
-          >
-            {/* Placeholder option */}
-            <MenuItem value="" disabled>
-              Select Status
-            </MenuItem>
-            {/* Dynamically rendered options */}
-            {Object.keys(statusMapping).map((key) => (
-              <MenuItem key={key} value={key}>
-                {statusMapping[key].label}
-              </MenuItem>
-            ))}
-          </Select>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ pb: 0.5 }}>Approve Booking</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Booking ID: <strong>{selectedRow?.id}</strong>
+          </Typography>
 
+          <Stack spacing={2.5}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="approve-status-label">Status</InputLabel>
+              <Select
+                labelId="approve-status-label"
+                label="Status"
+                value={selectedStatus}
+                onChange={handleStatusChange}
+                displayEmpty
+              >
+                <MenuItem value="" disabled>
+                  Select Status
+                </MenuItem>
+                {/* Dynamically rendered options.
+                    The booking's current status is hidden. "Ready For Pickup" (R)
+                    only shows for door pickups, "Ready For Delivery" (D) only for
+                    door deliveries. */}
+                {Object.keys(statusMapping)
+                  .filter((key) => {
+                    if (key === selectedRow?.status) return false;
+                    if (key === "R") return selectedRow?.pickupType == DOOR_PICKUP;
+                    if (key === "D") return selectedRow?.deliveryType == DOOR_DELIVERY;
+                    return true;
+                  })
+                  .map((key) => (
+                    <MenuItem key={key} value={key}>
+                      {statusMapping[key].label}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+
+            {isPostponed && (
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  p: 2,
+                  bgcolor: "action.hover",
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 1.5, color: "warning.dark" }}
+                >
+                  Postponement details
+                </Typography>
+                <Stack spacing={2}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                      label="Postponed Date"
+                      value={postponedDate ? dayjs(postponedDate) : null}
+                      onChange={(val) =>
+                        setPostponedDate(val ? val.format("YYYY-MM-DD") : "")
+                      }
+                      minDate={dayjs()}
+                      disablePast
+                      format="DD-MM-YYYY"
+                      slotProps={{
+                        textField: {
+                          size: "small",
+                          fullWidth: true,
+                          required: true,
+                          error: !postponedDate,
+                          helperText: !postponedDate
+                            ? "Please select a future date"
+                            : " ",
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                  <TextField
+                    label="Comments"
+                    placeholder="Write comment about user.."
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    size="small"
+                    value={approveComments}
+                    onChange={(e) => setApproveComments(e.target.value)}
+                    sx={{ "& .MuiInputBase-root": { minHeight: 72 } }}
+                  />
+                  
+                </Stack>
+              </Box>
+            )}
+          </Stack>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} color="primary" disabled={!selectedStatus}>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
+            disabled={
+              !selectedStatus ||
+              (isPostponed && (!postponedDate || postponedDate < todayStr))
+            }
+          >
             Submit
           </Button>
         </DialogActions>

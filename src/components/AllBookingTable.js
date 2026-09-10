@@ -49,6 +49,20 @@ function AllBookingTable() {
     );
     setBookdata(updatedData);
   };
+
+  // Add the newly created booking to the top of the table instead of refetching.
+  const handleBookingAdded = (newBooking) => {
+    if (!newBooking || !newBooking.id) {
+      fetchBookings(page, perPage);
+      return;
+    }
+    setBookdata((rows) => {
+      const list = rows || [];
+      if (list.some((r) => r.id === newBooking.id)) return list;
+      return [newBooking, ...list];
+    });
+    setTotalRows((t) => t + 1);
+  };
   const renderContent = () => {
     if (loadError) {
       return (
@@ -67,6 +81,7 @@ function AllBookingTable() {
       <OrderView
         bookdata={bookdata}
         onUpdateRow={handleRowUpdate}
+        onBookingAdded={handleBookingAdded}
         paginationServer
         paginationTotalRows={totalRows}
         paginationDefaultPage={page}

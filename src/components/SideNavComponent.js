@@ -52,6 +52,9 @@ export class SideNavComponent extends Component {
               <NavLink className="nav-link" to="/prices">
                 Price
               </NavLink>
+              <NavLink className="nav-link" to="/users">
+                User Management
+              </NavLink>
             </NavItem>
           </Nav>
         </Collapse>

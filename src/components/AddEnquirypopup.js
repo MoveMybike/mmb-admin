@@ -17,7 +17,7 @@ import {
 } from "../Context/MyContext";
 import { useContext } from "react";
 
-const AddEnquirypopup = ({ fdata, tdata, bType }) => {
+const AddEnquirypopup = ({ fdata, tdata, bType, onAdded }) => {
   const userDetails = React.useContext(UserContext);
   const setUserDetails = useContext(UserDispatchContext);
   const [enqDialogOpen, setEnqDialogOpen] = useState(false);
@@ -64,9 +64,18 @@ const AddEnquirypopup = ({ fdata, tdata, bType }) => {
     if (!validate()) return;
     try {
       if (bType === 'booking') {
-        // Add booking from the All Bookings page -> POST /createorder
-        await userService.addBooking(userDetails);
-      } else if (bType === 'cBooking') {
+        // Add booking from the All Bookings page -> POST /addbooking
+        const created = await userService.addBooking(userDetails);
+        alert("Booking added Sucessfully");
+        handleEnqClose();
+        if (onAdded) {
+          onAdded(created);
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      if (bType === 'cBooking') {
         await userService.convertBooking(userDetails);
       } else {
         await userService.addEnquiry(userDetails);

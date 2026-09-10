@@ -115,18 +115,20 @@ updateFromCities(data) {
     });
   }
 
-  approveBookings(bookingId,trackingStatus,approveStatus){
-    const payload = {
-      bookingId: bookingId,
+  approveBookings(bookingId,trackingStatus,approveStatus,postponedDate,comments){
+    const params = {
+      bookingID: bookingId,
       trackingStatus: trackingStatus,
-      approveStatus: approveStatus,
+      approveStatus: approveStatus,  // Ensure the approveStatus is included here
     };
+    if (postponedDate) {
+      params.postponedDate = postponedDate;
+    }
+    if (comments) {
+      params.comments = comments;
+    }
     return axios.post(API_URL + 'approvebooking',null, { headers: {Authorization: 'Bearer ' + user.jwt},
-      params: {
-        bookingID: bookingId,
-        trackingStatus: trackingStatus,
-        approveStatus: approveStatus,  // Ensure the approveStatus is included here
-      }, })
+      params, })
     .then(response => {
       
       if (response.data) {
@@ -220,6 +222,21 @@ updateFromCities(data) {
     });
   }
 
+  getDashboardCounts(){
+    return axios.get(API_URL + 'dashboardStats', {
+      headers: {Authorization: 'Bearer ' + user.jwt},
+    })
+    .then(response => response.data);
+  }
+
+  getBookingsByStatus(bookingStatus){
+    return axios.get(API_URL + 'getBookingByStatus', {
+      headers: {Authorization: 'Bearer ' + user.jwt},
+      params: { bookingStatus },
+    })
+    .then(response => response.data);
+  }
+
   convertBooking(formData,enqId){
     const payload = {
      formData:formData
@@ -242,12 +259,63 @@ updateFromCities(data) {
     };
     return axios.post(API_CUS_URL + "createeq",formData)
     .then(response => {
-      
+
       if (response.data) {
         localStorage.setItem("NewEnquiry", JSON.stringify(response.data));
       }
       return response.data;
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // User management
+  // TODO(endpoints): confirm the real paths / payload shapes with the backend.
+  // Current assumptions (all under API_URL = `${BACKEND}/v1/admin/`):
+  //   GET  listusers?page=&size=&status=    -> { content: [{ id, username,
+  //                                              firstname, lastname, email,
+  //                                              mobilenum, fromCityId,
+  //                                              fromLocation,
+  //                                              roles: ["ROLE_ADMIN", ...],
+  //                                              status: "Y" | "N" }],
+  //                                              totalCount }
+  //        status: "Y" (active) | "N" (inactive) | omitted (all)
+  //   POST addUser            body: user object (see AddUserPopup)
+  //   PUT  updateuser         body: user object with id, WITHOUT username/password
+  //   PUT  updateUserStatus?userID=<id>&status=<"Y"|"N">
+  // ---------------------------------------------------------------------------
+  getUsers(page = 0, size = 50, status){
+    const params = { page, size };
+    if (status) {
+      params.status = status;
+    }
+    return axios.get(API_URL + 'listusers', {
+      headers: {Authorization: 'Bearer ' + user.jwt},
+      params,
+    })
+    .then(response => response.data);
+  }
+
+  addUser(userData){
+    return axios.post(API_URL + 'addUser', userData, {
+      headers: {Authorization: 'Bearer ' + user.jwt},
+    })
+    .then(response => response.data);
+  }
+
+  // Username and password are immutable on edit and are not part of userData.
+  updateUser(userData){
+    return axios.put(API_URL + 'updateuser', userData, {
+      headers: {Authorization: 'Bearer ' + user.jwt},
+    })
+    .then(response => response.data);
+  }
+
+  updateUserStatus(userId, status){
+    return axios.put(API_URL + 'updateUserStatus', null, {
+      headers: {Authorization: 'Bearer ' + user.jwt},
+      params: { userID: userId, status },
+    })
+    .then(response => response.data);
   }
 }
 
