@@ -74,17 +74,17 @@ const OrderView = ({
     const updatedRow = { status: approveStatus };
     onUpdateRow(bookingId, updatedRow);
   };
+  
   const statusMapping = {
     O: { label: "New", color: "lightgreen" },
     Y: { label: "Booking Confirmed", color: "green" },
     M: { label: "MMMB Confirmation", color: "purple" },
-    N: { label: "Cancelled", color: "Read" },
-    G: { label: "No Response", color: "gray" },
-    R: { label: "Ready For Pickup", color: "#fd7e14" },
+    G: { label: "No Response", color: "#e4d7daff"},
+    R: { label: "Ready For Pickup", color: "#528b56ff" },
     H: { label: "Orinign at Hub", color: "#fd7e14" },
-    T: { label: "Transient", color: "#fd7e14" },
-    S: { label: "Origin at Destination", color: "#fd7e14" },
-    L: { label: "Ready For Delivery", color: "#0d6efd" },
+    T: { label: "Transient", color: "#eba872c7" },
+    S: { label: "Origin at Destination", color: "#e4e72cff" },
+    D: { label: "Ready For Delivery", color: "#0d6efd" },
     P: { label: "Postponed", color: "orange" },
     U: { label: "Customer Confirmation", color: "vilot" },
     C: { label: "Closed", color: "coffe" },

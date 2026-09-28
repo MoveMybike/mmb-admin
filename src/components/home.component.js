@@ -15,7 +15,10 @@ const CARDS = [
   {
     label: "Ready For Pickup",
     status: "R",
-    keys: ["readyForPickup", "readyForPickUp", "pickup"],
+    keys: [
+      "readyForPickup", "readyForPickUp", "pickup", "pickUp",
+      "pendingPickup", "readyForPickupCount", "totalPickup", "pickupCount",
+    ],
   },
   {
     label: "Ready For Delivery",
@@ -24,10 +27,20 @@ const CARDS = [
   },
 ];
 
+// Case/punctuation-insensitive so "readyForPickup", "ReadyForPickUp",
+// "ready_for_pick_up" etc. all match the same candidate key.
+const normalizeKey = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
 const pickCount = (data, keys) => {
   if (!data) return null;
-  for (const k of keys) {
-    if (data[k] !== null && data[k] !== undefined) return data[k];
+  const entries = Object.keys(data).map((k) => [normalizeKey(k), k]);
+  for (const wanted of keys) {
+    const target = normalizeKey(wanted);
+    const hit = entries.find(([norm]) => norm === target);
+    if (hit) {
+      const value = data[hit[1]];
+      if (value !== null && value !== undefined) return value;
+    }
   }
   return null;
 };
@@ -41,7 +54,20 @@ export default function Home() {
   useEffect(() => {
     let active = true;
     userService.getDashboardCounts()
-      .then((data) => { if (active) setCounts(data || {}); })
+      .then((data) => {
+        if (!active) return;
+        setCounts(data || {});
+        // Diagnostic: flag any card whose value couldn't be matched to a
+        // field in the API response, and show the raw keys available.
+        CARDS.forEach(({ label, keys }) => {
+          if (pickCount(data, keys) === null) {
+            console.warn(
+              `[Home] No matching field for "${label}". Tried: ${keys.join(", ")}. ` +
+              `dashboardStats keys: ${data ? Object.keys(data).join(", ") : "(no data)"}`
+            );
+          }
+        });
+      })
       .catch((err) => {
         console.error('Failed to load dashboard counts', err);
         if (active) setError(getFriendlyErrorMessage(err, 'Unable to load dashboard counts.'));
