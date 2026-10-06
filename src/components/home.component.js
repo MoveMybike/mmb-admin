@@ -3,29 +3,64 @@ import { useNavigate } from "react-router-dom";
 import userService from "../services/user.service";
 import { getFriendlyErrorMessage } from "../services/setup-interceptors";
 import homeimg from '../Sideimage.jpeg';
+import { STATUS } from "../constants/bookingStatus";
 
 // Each card: label, the count keys the stats endpoint may use (first match
-// wins), and the bookingStatus value passed to GET /getBookingByStatus.
+// wins), the bookingStatus value passed to GET /getBookingByStatus, and
+// optionally `roles` — if set, the card is shown only to those roles.
 const CARDS = [
   {
     label: "Active Shipment",
-    status: "Y",
+    status: STATUS.BC,
     keys: ["activeShipment", "activeShipments", "active"],
   },
   {
-    label: "Ready For Pickup",
-    status: "R",
+    label: "Ready for Pickup",
+    status: STATUS.RP,
     keys: [
       "readyForPickup", "readyForPickUp", "pickup", "pickUp",
       "pendingPickup", "readyForPickupCount", "totalPickup", "pickupCount",
     ],
   },
   {
-    label: "Ready For Delivery",
-    status: "D",
+    label: "At Source Hub",
+    status: STATUS.SH,
+    keys: ["atSourceHub", "sourceHub", "atSource"],
+  },
+  {
+    label: "At Destination Hub",
+    status: STATUS.DH,
+    keys: ["atDestinationHub", "destinationHub", "atDestination"],
+  },
+  {
+    label: "In Transit",
+    status: STATUS.IT,
+    keys: ["inTransit", "transit"],
+    roles: ["ROLE_ADMIN", "ROLE_OPERATOR"],
+  },
+  {
+    label: "Out for Delivery",
+    status: STATUS.OD,
     keys: ["readyForDelivery", "readyForDeliver", "delivery"],
   },
+  {
+    label: "Closed",
+    status: STATUS.CL,
+    keys: ["closed"],
+    roles: ["ROLE_ADMIN"],
+  },
 ];
+
+// Statuses a City Manager may view (mirrors the backend's CITY_MANAGER_VIEW_STATUSES).
+const CITY_MANAGER_STATUSES = [STATUS.RP, STATUS.SH, STATUS.DH, STATUS.OD];
+
+const readStoredRoles = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user"))?.roles || [];
+  } catch (e) {
+    return [];
+  }
+};
 
 // Case/punctuation-insensitive so "readyForPickup", "ReadyForPickUp",
 // "ready_for_pick_up" etc. all match the same candidate key.
@@ -51,15 +86,27 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Only show cards the signed-in user's roles are allowed to see. A City Manager
+  // (no other booking role) is further limited to the statuses the backend allows them.
+  const userRoles = readStoredRoles();
+  const isCityManagerOnly =
+    userRoles.includes("ROLE_CITY_MANAGER") &&
+    !userRoles.some((r) => ["ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_BOOKING_AGENT"].includes(r));
+  const visibleCards = CARDS.filter(
+    (card) =>
+      (!card.roles || card.roles.some((r) => userRoles.includes(r))) &&
+      (!isCityManagerOnly || CITY_MANAGER_STATUSES.includes(card.status))
+  );
+
   useEffect(() => {
     let active = true;
     userService.getDashboardCounts()
       .then((data) => {
         if (!active) return;
         setCounts(data || {});
-        // Diagnostic: flag any card whose value couldn't be matched to a
+        // Diagnostic: flag any visible card whose value couldn't be matched to a
         // field in the API response, and show the raw keys available.
-        CARDS.forEach(({ label, keys }) => {
+        visibleCards.forEach(({ label, keys }) => {
           if (pickCount(data, keys) === null) {
             console.warn(
               `[Home] No matching field for "${label}". Tried: ${keys.join(", ")}. ` +
@@ -83,10 +130,10 @@ export default function Home() {
       {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="row justify-content-center">
-        {CARDS.map(({ label, status, keys }) => {
+        {visibleCards.map(({ label, status, keys }) => {
           const value = pickCount(counts, keys);
           return (
-            <div className="col-md-4 col-sm-6 mb-3" key={label}>
+            <div className="col-lg col-md-4 col-sm-6 mb-3" key={label}>
               <div
                 className="card h-100 text-center dashboard-card"
                 role="button"

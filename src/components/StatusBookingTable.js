@@ -4,12 +4,13 @@ import userService from "../services/user.service";
 import { getFriendlyErrorMessage } from "../services/setup-interceptors";
 import OrderView from "./OrderView";
 import SideNavComponent from "./SideNavComponent";
+import { STATUS, BOOKING_STATUS_BY_CODE } from "../constants/bookingStatus";
 
-// Human-readable heading for the known card status values.
+// Headings for the dashboard cards; other codes fall back to the status label.
 const STATUS_TITLES = {
-  Y: "Active Shipment",
-  R: "Ready For Pickup",
-  D: "Ready For Delivery",
+  [STATUS.BC]: "Active Shipment",
+  [STATUS.RP]: "Ready for Pickup",
+  [STATUS.OD]: "Out for Delivery",
 };
 
 function StatusBookingTable() {
@@ -47,7 +48,8 @@ function StatusBookingTable() {
     );
   };
 
-  const title = STATUS_TITLES[status] || `Bookings - ${status}`;
+  const title = STATUS_TITLES[status]
+    || (BOOKING_STATUS_BY_CODE[status] ? BOOKING_STATUS_BY_CODE[status].label : `Bookings - ${status}`);
 
   const renderContent = () => {
     if (loadError) {

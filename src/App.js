@@ -33,6 +33,8 @@ class App extends Component {
     this.state = {
       showModeratorBoard: false,
       showAdminBoard: false,
+      showCityManagerMenu: false,
+      showOperatorMenu: false,
       currentUser: undefined,
     };
   }
@@ -45,6 +47,8 @@ class App extends Component {
         currentUser: user,
         showModeratorBoard: user.roles.includes("ROLE_MODERATOR"),
         showAdminBoard: user.roles.includes("ROLE_ADMIN"),
+        showCityManagerMenu: user.roles.includes("ROLE_CITY_MANAGER"),
+        showOperatorMenu: user.roles.includes("ROLE_OPERATOR") && !user.roles.includes("ROLE_ADMIN"),
       });
     }
     
@@ -62,6 +66,8 @@ class App extends Component {
     this.setState({
       showModeratorBoard: false,
       showAdminBoard: false,
+      showCityManagerMenu: false,
+      showOperatorMenu: false,
       currentUser: undefined,
     });
 
@@ -72,7 +78,7 @@ class App extends Component {
   }
 
   render() {
-    const { currentUser, showModeratorBoard, showAdminBoard } = this.state;
+    const { currentUser, showModeratorBoard, showAdminBoard, showCityManagerMenu, showOperatorMenu } = this.state;
 
     return (
       <UserProvider>
@@ -112,6 +118,30 @@ class App extends Component {
               <li className="nav-item">
                 <Link to={"/users"} className="nav-link">
                   User Management
+                </Link>
+              </li>
+            )}
+
+            {showCityManagerMenu && (
+              <li className="nav-item">
+                <Link to={"/bookings"} className="nav-link">
+                  OrderView
+                </Link>
+              </li>
+            )}
+
+            {showOperatorMenu && (
+              <li className="nav-item">
+                <Link to={"/bookings"} className="nav-link">
+                  OrderView
+                </Link>
+              </li>
+            )}
+
+            {showOperatorMenu && (
+              <li className="nav-item">
+                <Link to={"/enquiries"} className="nav-link">
+                  Booking Enquiry
                 </Link>
               </li>
             )}

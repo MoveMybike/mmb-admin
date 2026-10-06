@@ -6,19 +6,8 @@ import {
 } from "@mui/material";
 import userService from "../services/user.service";
 import { getFriendlyErrorMessage } from "../services/setup-interceptors";
+import { ALL_BOOKING_STATUSES } from "../constants/bookingStatus";
 import "../App.css";
-
-const STATUS_OPTIONS = {
-  O: "Open",
-  R: "Cancelled",
-  P: "Postponed",
-  U: "Customer Confirmation",
-  M: "MMMB Confirmation",
-  N: "No Response",
-  Y: "Booking Confirmed",
-  F: "Feedback",
-  C: "Closed",
-};
 
 const PICKUP_OPTIONS = { 201: "Station", 202: "Door" };
 const DELIVERY_OPTIONS = { 209: "Station", 208: "Door" };
@@ -188,8 +177,8 @@ const EditBooking = ({ row, onUpdated }) => {
                 <InputLabel id="edit-status">Status</InputLabel>
                 <Select labelId="edit-status" value={form.status ?? ''}
                   onChange={(e) => setField('status', e.target.value)}>
-                  {Object.entries(STATUS_OPTIONS).map(([k, v]) => (
-                    <MenuItem key={k} value={k}>{v}</MenuItem>
+                  {ALL_BOOKING_STATUSES.map(({ code, label }) => (
+                    <MenuItem key={code} value={code}>{label}</MenuItem>
                   ))}
                 </Select>
               </FormControl>

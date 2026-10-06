@@ -17,6 +17,39 @@ import AddEnquirypopup from './AddEnquirypopup';
 import EditBooking from './EditBooking';
 import { DetailPanel, DetailRow } from './DetailRow';
 import { UserContext, UserDispatchContext } from '../Context/MyContext';
+import { ALL_BOOKING_STATUSES, BOOKING_EXTRA_STATUSES, STATUS, getBookingStatus } from '../constants/bookingStatus';
+
+// Once a booking reaches Booking Confirmed, the side outcomes (Postponed, No Response,
+// On Hold, Cancelled) are hidden from everyone except Admins.
+const BOOKING_CONFIRMED_ORDER = getBookingStatus(STATUS.BC).order;
+const EXTRA_STATUS_CODES = BOOKING_EXTRA_STATUSES.map((s) => s.code);
+
+// Statuses a City Manager may approve to (mirrors the backend's CITY_MANAGER_APPROVE_STATUSES).
+const CITY_MANAGER_APPROVE_CODES = [STATUS.IT, STATUS.SH, STATUS.DH, STATUS.OD, STATUS.DL];
+
+const readStoredRoles = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user'))?.roles || [];
+  } catch (e) {
+    return [];
+  }
+};
+
+// True when the signed-in user is a City Manager with no other booking role.
+const isCityManagerOnlyUser = () => {
+  const roles = readStoredRoles();
+  return roles.includes('ROLE_CITY_MANAGER')
+    && !roles.some((r) => ['ROLE_ADMIN', 'ROLE_OPERATOR', 'ROLE_BOOKING_AGENT'].includes(r));
+};
+
+// True when the signed-in user is an Admin.
+const isAdminUser = () => readStoredRoles().includes('ROLE_ADMIN');
+
+// True when the signed-in user is an Operator and not an Admin.
+const isOperatorOnlyUser = () => {
+  const roles = readStoredRoles();
+  return roles.includes('ROLE_OPERATOR') && !roles.includes('ROLE_ADMIN');
+};
 
 const OrderView = ({
   bookdata,
@@ -74,21 +107,6 @@ const OrderView = ({
     const updatedRow = { status: approveStatus };
     onUpdateRow(bookingId, updatedRow);
   };
-  
-  const statusMapping = {
-    O: { label: "New", color: "lightgreen" },
-    Y: { label: "Booking Confirmed", color: "green" },
-    M: { label: "MMMB Confirmation", color: "purple" },
-    G: { label: "No Response", color: "#e4d7daff"},
-    R: { label: "Ready For Pickup", color: "#528b56ff" },
-    H: { label: "Orinign at Hub", color: "#fd7e14" },
-    T: { label: "Transient", color: "#eba872c7" },
-    S: { label: "Origin at Destination", color: "#e4e72cff" },
-    D: { label: "Ready For Delivery", color: "#0d6efd" },
-    P: { label: "Postponed", color: "orange" },
-    U: { label: "Customer Confirmation", color: "vilot" },
-    C: { label: "Closed", color: "coffe" },
-  };
 
   const handleApprove = (row) => {
     setSelectedRow(row);
@@ -103,8 +121,8 @@ const OrderView = ({
     setApproveComments("");
   };
 
-  // "Postponed" (P) requires a postponed date; comments stay optional.
-  const isPostponed = selectedStatus === "P";
+  // "Postponed" requires a postponed date; comments stay optional.
+  const isPostponed = selectedStatus === STATUS.PP;
 
   // Local-time YYYY-MM-DD for a Date.
   const toDateStr = (d) => {
@@ -166,7 +184,7 @@ const OrderView = ({
         bookingId,
         trackingStatus,
         approveStatus,
-        approveStatus === "P" ? postponedDate : "",
+        approveStatus === STATUS.PP ? postponedDate : "",
         approveComments,
       );
       handleUpdate(result.id, result.bookingStatus);
@@ -181,7 +199,7 @@ const OrderView = ({
 
   const handleStatusChange = (event) => {
     setSelectedStatus(event.target.value);
-    if (event.target.value !== "P") {
+    if (event.target.value !== STATUS.PP) {
       setPostponedDate("");
       setApproveComments("");
     }
@@ -211,9 +229,10 @@ const OrderView = ({
     },
     {
       name: "Booking Status",
-      selector: (row) => row.status,
+      // Sort by position in the shipment flow; side statuses sort last.
+      selector: (row) => getBookingStatus(row.status).order ?? 1000,
       cell: (row) => {
-        const status = statusMapping[row.status] || { label: "Unknown", color: "gray" };
+        const status = getBookingStatus(row.status);
         return (
           <span style={{ color: status.color, fontWeight: "bold" }}>
             {status.label}
@@ -563,19 +582,25 @@ const OrderView = ({
                   Select Status
                 </MenuItem>
                 {/* Dynamically rendered options.
-                    The booking's current status is hidden. "Ready For Pickup" (R)
-                    only shows for door pickups, "Ready For Delivery" (D) only for
+                    The booking's current status is hidden. "Ready for Pickup" (RP)
+                    only shows for door pickups, "Out for Delivery" (OD) only for
                     door deliveries. */}
-                {Object.keys(statusMapping)
-                  .filter((key) => {
-                    if (key === selectedRow?.status) return false;
-                    if (key === "R") return selectedRow?.pickupType == DOOR_PICKUP;
-                    if (key === "D") return selectedRow?.deliveryType == DOOR_DELIVERY;
+                {ALL_BOOKING_STATUSES
+                  .filter(({ code, order }) => {
+                    if (code === selectedRow?.status) return false;
+                    if (isCityManagerOnlyUser() && !CITY_MANAGER_APPROVE_CODES.includes(code)) return false;
+                    // Operators only move a booking forward: show statuses after the current one.
+                    const currentOrder = getBookingStatus(selectedRow?.status).order;
+                    if (isOperatorOnlyUser() && currentOrder !== undefined && order <= currentOrder) return false;
+                    if (!isAdminUser() && currentOrder >= BOOKING_CONFIRMED_ORDER && EXTRA_STATUS_CODES.includes(code)) return false;
+                    if (!isAdminUser() && code === STATUS.CL) return false; // Closed is admin-only
+                    if (code === STATUS.RP) return selectedRow?.pickupType == DOOR_PICKUP;
+                    if (code === STATUS.OD) return selectedRow?.deliveryType == DOOR_DELIVERY;
                     return true;
                   })
-                  .map((key) => (
-                    <MenuItem key={key} value={key}>
-                      {statusMapping[key].label}
+                  .map(({ code, label }) => (
+                    <MenuItem key={code} value={code}>
+                      {label}
                     </MenuItem>
                   ))}
               </Select>

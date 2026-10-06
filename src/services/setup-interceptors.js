@@ -25,7 +25,9 @@ export const getFriendlyErrorMessage = (error, fallback = "Something went wrong.
 };
 
 // Attaches a global response interceptor so that:
-//  - an expired / invalid session (HTTP 401 / 403) logs the user out
+//  - an expired / invalid session (HTTP 401) logs the user out
+//  - a forbidden action (HTTP 403, e.g. "belongs to another city") only shows its
+//    message; the session is still valid, so the user stays logged in
 //  - a network / server-down error is normalised to a friendly message
 const setupInterceptors = () => {
   axios.interceptors.response.use(
@@ -33,7 +35,7 @@ const setupInterceptors = () => {
     (error) => {
       const status = error.response?.status;
 
-      if (status === 401 || status === 403) {
+      if (status === 401) {
         // Session expired or token rejected -> force logout.
         EventBus.dispatch("logout");
       }

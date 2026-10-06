@@ -12,6 +12,7 @@ import AddEnquirypopup from './AddEnquirypopup';
 import { UserContext, UserDispatchContext } from '../Context/MyContext';
 import CustomSelect from './SelectComponent';
 import { DetailPanel, DetailRow } from './DetailRow';
+import { ENQUIRY_STATUSES, ENQUIRY_STATUS_BY_CODE, ENQUIRY_CONVERTED } from '../constants/bookingStatus';
 
 
 const PartialOrderView = ({
@@ -82,16 +83,6 @@ const PartialOrderView = ({
     serviceType: ''
   }
 
-  const statusMapping = {
-    O: { label: "Open", color: "lightgreen" },
-    R: { label: "Cancelled", color: "red" },
-    P: { label: "Postponed", color: "orange" },
-    U: { label: "Customer Confirmation", color: "vilot" },
-    M: { label: "MMMB Confirmation", color: "purple" },
-    N: { label: "No Response", color: "gray" },
-    Y: { label: "Booking Confirmed", color: "green" },
-    Z : { label: "Booking Converted", color: "Yellow" }
-  };
   const handleUpdate = (bookingId, approveStatus) => {
     // Example of updating the row with new data
     const updatedRow = { enquiryStatus: approveStatus }; // Simulate an updated status
@@ -320,7 +311,7 @@ const PartialOrderView = ({
       const result = await userService.convertBooking(userDetails, enqId);
       alert("Booking Converstion Submited  successfully!");
       // Mark the enquiry as converted so the Convert button disables right away.
-      handleEnqRowUpdate(enqId, { enquiryStatus: 'Z' });
+      handleEnqRowUpdate(enqId, { enquiryStatus: ENQUIRY_CONVERTED });
       console.log("Approval Result:", result);
     } catch (error) {
       alert("Failed to Convert Booking. Please try again.");
@@ -350,7 +341,7 @@ const PartialOrderView = ({
     {
       name: "Actions",
       cell: (row) => {
-        const isConverted = row.enquiryStatus === 'Z';
+        const isConverted = row.enquiryStatus === ENQUIRY_CONVERTED;
         return (
           <div style={{ display: "flex", gap: "5px" }}>
             <Button
@@ -382,7 +373,7 @@ const PartialOrderView = ({
       name: "Enquiry Status",
       selector: (row) => row.enquiryStatus,
       cell: (row) => {
-        const status = statusMapping[row.enquiryStatus] || { label: "Unknown", color: "gray" };
+        const status = ENQUIRY_STATUS_BY_CODE[row.enquiryStatus] || { label: "Unknown", color: "gray" };
         return (
           <span style={{ color: status.color, fontWeight: "bold" }}>
             {status.label}
@@ -530,9 +521,9 @@ const PartialOrderView = ({
             fullWidth
             variant="standard"
           >
-            {Object.keys(statusMapping).map((key) => (
-              <MenuItem key={key} value={key}>
-                {statusMapping[key].label}
+            {ENQUIRY_STATUSES.map(({ code, label }) => (
+              <MenuItem key={code} value={code}>
+                {label}
               </MenuItem>
             ))}
           </Select>

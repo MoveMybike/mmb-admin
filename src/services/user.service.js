@@ -78,10 +78,12 @@ updateFromCities(data) {
   getAdminBoard() {
     return axios.get(API_URL + 'admin', { headers: authHeader() });
   }
-  getAllBookings(page = 0, size = 50){
+  // direction: "FROM" (bookings originating in the city) | "TO" (bookings destined for it).
+  // Ignored by the backend for city-scoped roles' city, which is locked to their own.
+  getAllBookings(page = 0, size = 50, direction = "FROM"){
     return axios.get(API_URL + 'getAllBooking', {
       headers: {Authorization: 'Bearer ' + user.jwt},
-      params: { page, size },
+      params: { page, size, direction },
     })
     .then(response => {
 

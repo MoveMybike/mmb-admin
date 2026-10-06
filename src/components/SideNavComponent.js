@@ -13,6 +13,21 @@ import {
 } from "reactstrap";
 import { NavLink , Link } from "react-router-dom";
 
+const renderLink = ({ to, label }) => (
+  <NavLink key={to} className="nav-link" to={to}>
+    {label}
+  </NavLink>
+);
+
+// Roles come from the stored login user (set by AuthService.login).
+const readStoredRoles = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user"))?.roles || [];
+  } catch (e) {
+    return [];
+  }
+};
+
 export class SideNavComponent extends Component {
   constructor(props) {
     super(props);
@@ -28,6 +43,37 @@ export class SideNavComponent extends Component {
     });
   }
   render() {
+    const roles = readStoredRoles();
+    const hasRole = (...names) => names.some((n) => roles.includes(n));
+
+    // City Managers: Bookings only. Operators: Bookings + Booking Enquiry.
+    // Everyone else (Admin, Booking Agent, ...) keeps the full menu.
+    const isCityManagerOnly =
+      hasRole("ROLE_CITY_MANAGER") && !hasRole("ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_BOOKING_AGENT");
+    const isOperatorOnly = hasRole("ROLE_OPERATOR") && !hasRole("ROLE_ADMIN");
+
+    const operatorLinks = [
+      { to: "/bookings", label: "Bookings" },
+      { to: "/enquiries", label: "Booking Enquiry" },
+    ];
+    const fullLinks = [
+      { to: "/bookings", label: "Bookings" },
+      { to: "/enquiries", label: "Booking Enquiry" },
+      { to: "/fromCities", label: "From City" },
+      { to: "/toCities", label: "To City" },
+      { to: "/prices", label: "Price" },
+      { to: "/users", label: "User Management" },
+    ];
+
+    let content;
+    if (isCityManagerOnly) {
+      content = [{ to: "/bookings", label: "Bookings" }].map(renderLink);
+    } else if (isOperatorOnly) {
+      content = operatorLinks.map(renderLink);
+    } else {
+      content = fullLinks.map(renderLink);
+    }
+
     return (
       <Navbar dark expand="md" id="main-nav" >
         <NavbarToggler
@@ -36,26 +82,7 @@ export class SideNavComponent extends Component {
         />
         <Collapse isOpen={this.state.isNavOpen} navbar>
           <Nav navbar className="sideNav">
-            <NavItem>
-              <NavLink className="nav-link" to="/bookings">
-                Bookings
-              </NavLink>
-              <NavLink className="nav-link" to="/enquiries">
-                Booking Enquiry
-              </NavLink>
-              <NavLink className="nav-link" to="/fromCities">
-                From City
-              </NavLink>
-              <NavLink className="nav-link" to="/toCities">
-                To City
-              </NavLink>
-              <NavLink className="nav-link" to="/prices">
-                Price
-              </NavLink>
-              <NavLink className="nav-link" to="/users">
-                User Management
-              </NavLink>
-            </NavItem>
+            <NavItem>{content}</NavItem>
           </Nav>
         </Collapse>
       </Navbar>
