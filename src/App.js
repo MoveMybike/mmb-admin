@@ -138,14 +138,6 @@ class App extends Component {
               </li>
             )}
 
-            {showOperatorMenu && (
-              <li className="nav-item">
-                <Link to={"/enquiries"} className="nav-link">
-                  Booking Enquiry
-                </Link>
-              </li>
-            )}
-
             {/* {currentUser && (
               <li className="nav-item">
                 <Link to={"/user"} className="nav-link">

@@ -95,13 +95,10 @@ const EditPrice = ({
         alert('Price added successfully');
         if (onAdded) onAdded(created ?? payload);
       } else {
-        // Send the whole price object back so unchanged fields
-        // (priceId, fromCityName, toCityName, ...) are preserved.
+        // The update endpoint only accepts these three fields; the route stays fixed.
+        // The response has no city names, so the table keeps them when it merges the row.
         const payload = {
-          ...row,
           priceId,
-          fromCityId: row.fromCityId,
-          toCityId: row.toCityId,
           priceValue: numeric,
           status,
         };

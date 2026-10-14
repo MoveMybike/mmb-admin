@@ -46,7 +46,7 @@ export class SideNavComponent extends Component {
     const roles = readStoredRoles();
     const hasRole = (...names) => names.some((n) => roles.includes(n));
 
-    // City Managers: Bookings only. Operators: Bookings + Booking Enquiry.
+    // City Managers: Bookings only. Operators: Bookings only.
     // Everyone else (Admin, Booking Agent, ...) keeps the full menu.
     const isCityManagerOnly =
       hasRole("ROLE_CITY_MANAGER") && !hasRole("ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_BOOKING_AGENT");
